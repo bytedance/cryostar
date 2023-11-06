@@ -1,0 +1,27 @@
+# code
+einops
+torch
+numpy
+tqdm
+tabulate
+tensorboard
+matplotlib
+# ipywidgets>=7.6.0,<8
+mrcfile
+biopython
+jupyterlab
+pandas
+starfile
+scipy
+biotite
+fastpdb
+lazy_loader
+dm-tree
+gemmi
+lightning
+mmengine
+# formatting
+nbqa
+autoflake
+isort
+yapf
