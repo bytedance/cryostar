@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <!-- Meta tags for social media banners, these should be filled in appropriatly as they are your "business card" -->
+  <!-- Replace the content tag with appropriate information -->
+  <meta name="description" content="DESCRIPTION META TAG">
+  <meta property="og:title" content="SOCIAL MEDIA TITLE TAG" />
+  <meta property="og:description" content="SOCIAL MEDIA DESCRIPTION TAG TAG" />
+  <meta property="og:url" content="URL OF THE WEBSITE" />
+  <!-- Path to banner image, should be in the path listed below. Optimal dimenssions are 1200X630-->
+  <meta property="og:image" content="static/image/your_banner_image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+
+  <meta name="twitter:title" content="TWITTER BANNER TITLE META TAG">
+  <meta name="twitter:description" content="TWITTER BANNER DESCRIPTION META TAG">
+  <!-- Path to banner image, should be in the path listed below. Optimal dimenssions are 1200X600-->
+  <meta name="twitter:image" content="static/images/your_twitter_banner_image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <!-- Keywords for your paper to be indexed by-->
+  <meta name="keywords" content="KEYWORDS SHOULD BE PLACED HERE">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <title>cryoSTAR</title>
+  <!-- <link rel="icon" type="image/x-icon" href="static/images/cryostar.png"> -->
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+
+  <link rel="stylesheet" href="static/css/bulma.min.css">
+  <link rel="stylesheet" href="static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="static/css/fontawesome.all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="static/css/index.css">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://documentcloud.adobe.com/view-sdk/main.js"></script>
+  <script defer src="static/js/fontawesome.all.min.js"></script>
+  <script src="static/js/bulma-carousel.min.js"></script>
+  <script src="static/js/bulma-slider.min.js"></script>
+  <script src="static/js/index.js"></script>
+</head>
+
+<body>
+
+
+  <section class="hero">
+    <div class="hero-body">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered">
+          <div class="column has-text-centered">
+            <h1 class="title is-1 publication-title">
+              <!-- <span style="white-space: nowrap">
+                <img src="./static/images/cryostar.png" style="display: inline; vertical-align: top; width: 3rem;">
+              </span> -->
+              <!-- 🥶⭐  -->
+              CryoSTAR: Leveraging Structural Prior and Constraints for
+              Cryo-EM
+              Heterogeneous Reconstruction
+            </h1>
+            <div class="is-size-5 publication-authors">
+              <!-- Paper authors -->
+              <span class="author-block">
+                Yilai Li<sup>*</sup>,</span>
+              <span class="author-block">
+                Yi Zhou<sup>*</sup>,</span>
+              <span class="author-block">
+                Jing Yuan<sup>*</sup>,</span>
+              <span class="author-block">
+                Fei Ye,</span>
+              <span class="author-block">
+                Quanquan Gu<sup>#</sup></span>
+            </div>
+
+            <div class="is-size-5 publication-authors">
+              <span class="author-block">ByteDance Research<br></span>
+              <span class="eql-cntrb"><small><br>
+                  <sup>*</sup>Equal Contribution
+                  &nbsp;&nbsp;&nbsp;
+                  <sup>#</sup>Corresponding Author
+                </small>
+              </span>
+            </div>
+
+            <div class="has-text-grey">
+              {yilai.li, zhouyi.naive, yuanjing.eugene, yefei.joyce, quanquan.gu}@bytedance.com
+            </div>
+
+            <div class="column has-text-centered">
+              <div class="publication-links">
+                <!-- Arxiv PDF link -->
+                <span class="link-block">
+                  <a href="https://www.biorxiv.org/content/10.1101/2023.10.31.564872v1" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="fas fa-file-pdf"></i>
+                    </span>
+                    <span>Paper</span>
+                  </a>
+                </span>
+
+                <!-- Supplementary PDF link -->
+                <!-- <span class="link-block">
+                  <a href="static/pdfs/supplementary_material.pdf" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="fas fa-file-pdf"></i>
+                    </span>
+                    <span>Supplementary</span>
+                  </a>
+                </span> -->
+
+                <!-- Github link -->
+                <span class="link-block">
+                  <a href="https://github.com/bytedance/cryostar" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="fab fa-github"></i>
+                    </span>
+                    <span>Code</span>
+                  </a>
+                </span>
+
+                <!-- ArXiv abstract Link -->
+                <!-- <span class="link-block">
+                  <a href="https://arxiv.org/abs/<ARXIV PAPER ID>" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="ai ai-arxiv"></i>
+                    </span>
+                    <span>arXiv</span>
+                  </a>
+                </span> -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- Teaser video-->
+  <!-- <section class="hero teaser">
+    <div class="container is-max-desktop">
+      <div class="hero-body">
+        <video poster="" id="tree" autoplay controls muted loop height="100%">
+          <source src="static/videos/banner_video.mp4" type="video/mp4">
+        </video>
+        <h2 class="subtitle has-text-centered">
+          Aliquam vitae elit ullamcorper tellus egestas pellentesque. Ut lacus tellus, maximus vel lectus at, placerat
+          pretium mi. Maecenas dignissim tincidunt vestibulum. Sed consequat hendrerit nisl ut maximus.
+        </h2>
+      </div>
+    </div>
+  </section> -->
+  <!-- End teaser video -->
+
+  <section class="hero teaser">
+    <div class="container is-max-desktop">
+      <div class="hero-body">
+        <img src="https://lf3-nlp-opensource.bytetos.com/obj/nlp-opensource/cryostar/images/main_figure.png" alt="MAIN_FIGURE" />
+        <h2 class="subtitle has-text-centered">
+          CryoSTAR is a neural network based framework for recovering conformational heterogenity of protein complexes.
+          By leveraging the structural prior and constraints from a reference pdb model, cryoSTAR can output both the
+          protein structure and density map.
+        </h2>
+      </div>
+    </div>
+  </section>
+
+  <!-- Paper abstract -->
+  <section class="section hero is-light">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <h2 class="title is-3">Abstract</h2>
+          <div class="content has-text-justified">
+            <p>
+              Resolving conformational heterogeneity in cryo-electron microscopy (cryo-EM) datasets remains a
+              significant challenge in structural biology. Previous methods have often been restricted to working
+              exclusively on volumetric densities, neglecting the potential of incorporating any pre-existing structural
+              knowledge as prior or constraints. In this paper, we present a novel methodology, cryoSTAR, that harnesses
+              atomic model information as structural regularization to elucidate such heterogeneity. Our method uniquely
+              outputs both coarse-grained models and density maps, showcasing the molecular conformational changes at
+              different levels. Validated against four diverse experimental datasets, spanning large complexes, a
+              membrane protein, and a small single-chain protein, our results consistently demonstrate an efficient and
+              effective solution to conformational heterogeneity with minimal human bias. By integrating atomic model
+              insights with cryo-EM data, cryoSTAR represents a meaningful step forward, paving the way for a deeper
+              understanding of dynamic biological processes.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- End paper abstract -->
+
+
+  <section class="section hero">
+    <div class="container is-max-desktop">
+
+      <div class="columns is-centered">
+        <h2 class="title has-text-centered">
+          Results on synthetic data
+        </h2>
+      </div>
+      <h2 class="subtitle has-text-centered">
+        pdb: <i>1ake</i> &rightarrow; <i>4ake</i>
+        <!-- <br>50 conformations &times; 1,000 particles generated with PyMol's <i>morph</i>. -->
+      </h2>
+
+      <div class="columns is-centered">
+        <div class="column ">
+          <figure class="image">
+            <img class="is-rounded" src="https://lf3-nlp-opensource.bytetos.com/obj/nlp-opensource/cryostar/images/1ake-gt.gif" width="100%">
+            <figcaption class="has-text-centered">
+              Groudtruth
+            </figcaption>
+          </figure>
+        </div>
+        <div class="column ">
+          <figure class="image">
+            <img class="is-rounded" src="https://lf3-nlp-opensource.bytetos.com/obj/nlp-opensource/cryostar/images/1ake-cryostar-atom.gif" width="100%">
+            <figcaption class="has-text-centered">
+              cryoSTAR's structure
+            </figcaption>
+          </figure>
+        </div>
+        <div class="column ">
+          <figure class="image">
+            <img class="is-rounded" src="https://lf3-nlp-opensource.bytetos.com/obj/nlp-opensource/cryostar/images/1ake-cryostar-density.gif" width="100%">
+            <figcaption class="has-text-centered">
+              cryoSTAR's density
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <!-- <div class="columns is-centered">
+        <div class="column">
+          <figure class="image">
+            <img class="is-rounded" src="./static/images/1ake-relion.gif" width="100%">
+            <figcaption class="has-text-centered">
+              RELION
+            </figcaption>
+          </figure>
+        </div>
+        <div class="column">
+          <figure class="image">
+            <img class="is-rounded" src="./static/images/1ake-cryodrgn.gif" width="100%">
+            <figcaption class="has-text-centered">
+              cryoDRGN
+            </figcaption>
+          </figure>
+        </div>
+        <div class="column">
+          <figure class="image">
+            <img class="is-rounded" src="./static/images/1ake-3dflex.gif" width="100%">
+            <figcaption class="has-text-centered">
+              3DFlex
+            </figcaption>
+        </div>
+      </div> -->
+    </div>
+    </div>
+  </section>
+
+
+  <!-- Image carousel -->
+  <!-- <section class="hero is-small is-light">
+    <div class="hero-body">
+      <div class="container">
+        <h2 class="title has-text-centered">Results on experimental data</h2>
+        <div id="results-carousel" class="carousel results-carousel">
+
+          <div>
+            <h2 class="subtitle has-text-centered">EMPIAR-10073</h2>
+            <div class=" columns is-centered">
+              <div class="column">
+                <figure class="image">
+                  <img class="is-rounded" src="./static/images/10073-cryostar-atom.gif" width="100%">
+                  <figcaption class="has-text-centered">
+                    cryoSTAR's structure
+                  </figcaption>
+                </figure>
+              </div>
+              <div class="column">
+                <figure class="image">
+                  <img class="is-rounded" src="./static/images/10073-cryostar-density.gif" width="100%">
+                  <figcaption class="has-text-centered">
+                    cryoSTAR's density
+                  </figcaption>
+                </figure>
+              </div>
+              <div class="column">
+                <figure class="image">
+                  <img class="is-rounded" src="./static/images/10073-cryodrgn.gif" width="100%">
+                  <figcaption class="has-text-centered">
+                    cryoDRGN
+                  </figcaption>
+              </div>
+              <div class="column">
+                <figure class="image">
+                  <img class="is-rounded" src="./static/images/10073-3dflex.gif" width="100%">
+                  <figcaption class="has-text-centered">
+                    3DFlex
+                  </figcaption>
+              </div>
+            </div>
+          </div>
+
+
+          <div>
+            <h2 class="subtitle has-text-centered">EMPIAR-10827</h2>
+            <div class=" columns is-centered">
+              <div class="column">
+                <figure class="image">
+                  <img class="is-rounded" src="./static/images/10827-cryostar-atom.gif" width="100%">
+                  <figcaption class="has-text-centered">
+                    cryoSTAR's structure
+                  </figcaption>
+                </figure>
+              </div>
+              <div class="column">
+                <figure class="image">
+                  <img class="is-rounded" src="./static/images/10827-cryostar-density.gif" width="100%">
+                  <figcaption class="has-text-centered">
+                    cryoSTAR's density
+                  </figcaption>
+                </figure>
+              </div>
+              <div class="column">
+                <figure class="image">
+                  <img class="is-rounded" src="./static/images/10827-cryodrgn.gif" width="100%">
+                  <figcaption class="has-text-centered">
+                    cryoDRGN
+                  </figcaption>
+              </div>
+              <div class="column">
+                <figure class="image">
+                  <img class="is-rounded" src="./static/images/10827-3dflex.gif" width="100%">
+                  <figcaption class="has-text-centered">
+                    3DFlex
+                  </figcaption>
+              </div>
+            </div>
+          </div>
+
+
+          <div>
+            <h2 class="subtitle has-text-centered">EMPIAR-10059</h2>
+            <div class=" columns is-centered">
+              <div class="column">
+                <figure class="image">
+                  <img class="is-rounded" src="./static/images/10059-cryostar-atom.gif" width="100%">
+                  <figcaption class="has-text-centered">
+                    cryoSTAR's structure
+                  </figcaption>
+                </figure>
+              </div>
+              <div class="column">
+                <figure class="image">
+                  <img class="is-rounded" src="./static/images/10059-cryostar-density.gif" width="100%">
+                  <figcaption class="has-text-centered">
+                    cryoSTAR's density
+                  </figcaption>
+                </figure>
+              </div>
+              <div class="column">
+                <figure class="image">
+                  <img class="is-rounded" src="./static/images/10059-cryodrgn.gif" width="100%">
+                  <figcaption class="has-text-centered">
+                    cryoDRGN
+                  </figcaption>
+              </div>
+              <div class="column">
+                <figure class="image">
+                  <img class="is-rounded" src="./static/images/10059-3dflex.gif" width="100%">
+                  <figcaption class="has-text-centered">
+                    3DFlex
+                  </figcaption>
+              </div>
+            </div>
+          </div>
+
+
+          <div>
+            <h2 class="subtitle has-text-centered">EMPIAR-10180</h2>
+            <div class=" columns is-centered">
+              <div class="column">
+                <figure class="image">
+                  <img class="is-rounded" src="./static/images/10180-cryostar-atom.gif" width="100%">
+                  <figcaption class="has-text-centered">
+                    cryoSTAR's structure
+                  </figcaption>
+                </figure>
+              </div>
+              <div class="column">
+                <figure class="image">
+                  <img class="is-rounded" src="./static/images/10180-cryostar-density.gif" width="100%">
+                  <figcaption class="has-text-centered">
+                    cryoSTAR's density
+                  </figcaption>
+                </figure>
+              </div>
+              <div class="column">
+                <figure class="image">
+                  <img class="is-rounded" src="./static/images/10180-cryodrgn.gif" width="100%">
+                  <figcaption class="has-text-centered">
+                    cryoDRGN
+                  </figcaption>
+              </div>
+              <div class="column">
+                <figure class="image">
+                  <img class="is-rounded" src="./static/images/10180-3dflex.gif" width="100%">
+                  <figcaption class="has-text-centered">
+                    3DFlex
+                  </figcaption>
+              </div>
+            </div>
+          </div>
+
+
+        </div>
+      </div>
+    </div>
+  </section> -->
+  <!-- End image carousel -->
+
+
+  <!-- Youtube video -->
+  <!-- <section class="hero is-small is-light">
+    <div class="hero-body">
+      <div class="container">
+        <h2 class="title is-3">Video Presentation</h2>
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-four-fifths">
+
+            <div class="publication-video">
+              <iframe src="https://www.youtube.com/embed/JkaxUblCGz0" frameborder="0" allow="autoplay; encrypted-media"
+                allowfullscreen></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section> -->
+  <!-- End youtube video -->
+
+
+  <!-- Video carousel -->
+  <section class="hero is-small">
+    <div class="hero-body">
+      <div class="container is-max-desktop">
+        <h2 class="title has-text-centered">Results on experimental data</h2>
+        <h3 class="subtitle has-text-centered">EMPIAR-10073/10180/10059/10827</h3>
+        <div id="results-carousel" class="carousel results-carousel">
+          <div class="item item-video2">
+            <video poster="" id="video2" autoplay controls muted loop height="100%">
+              <source src="https://lf3-nlp-opensource.bytetos.com/obj/nlp-opensource/cryostar/videos/EMPIAR-10073.mp4" type="video/mp4">
+            </video>
+          </div>
+          <div class="item item-video3">
+            <video poster="" id="video3" autoplay controls muted loop height="100%">\
+              <source src="https://lf3-nlp-opensource.bytetos.com/obj/nlp-opensource/cryostar/videos/EMPIAR-10180.mp4" type="video/mp4">
+            </video>
+          </div>
+          <div class="item item-video1">
+            <video poster="" id="video1" autoplay controls muted loop height="100%">
+              <source src="https://lf3-nlp-opensource.bytetos.com/obj/nlp-opensource/cryostar/videos/EMPIAR-10059.mp4" type="video/mp4">
+            </video>
+          </div>
+          <div class="item item-video4">
+            <video poster="" id="video4" autoplay controls muted loop height="100%">\
+              <source src="https://lf3-nlp-opensource.bytetos.com/obj/nlp-opensource/cryostar/videos/EMPIAR-10827.mp4" type="video/mp4">
+            </video>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- End video carousel -->
+
+
+
+
+
+
+  <!-- Paper poster -->
+  <!-- <section class="hero is-small is-light">
+    <div class="hero-body">
+      <div class="container">
+        <h2 class="title">Poster</h2>
+
+        <iframe src="static/pdfs/sample.pdf" width="100%" height="550">
+        </iframe>
+
+      </div>
+    </div>
+  </section> -->
+  <!--End paper poster -->
+
+
+  <!--BibTex citation -->
+  <section class="section" id="BibTeX">
+    <div class="container is-max-desktop content">
+      <h2 class="title">BibTeX</h2>
+      <pre><code>
+        @article {Li2023cryostar,
+          author = {Yilai Li and Yi Zhou and Jing Yuan and Fei Ye and Quanquan Gu},
+          title = {CryoSTAR: Leveraging Structural Prior and Constraints for Cryo-EM Heterogeneous Reconstruction},
+          elocation-id = {2023.10.31.564872},
+          year = {2023},
+          doi = {10.1101/2023.10.31.564872},
+          URL = {https://www.biorxiv.org/content/early/2023/11/02/2023.10.31.564872},
+          eprint = {https://www.biorxiv.org/content/early/2023/11/02/2023.10.31.564872.full.pdf},
+          journal = {bioRxiv}
+        }
+      </code></pre>
+    </div>
+  </section>
+  <!--End BibTex citation -->
+
+
+  <footer class="footer">
+    <div class="container">
+      <div class="columns is-centered">
+        <div class="column is-8">
+          <div class="content">
+
+            <p>
+              This page was built using the <a href="https://github.com/eliahuhorwitz/Academic-project-page-template"
+                target="_blank">Academic Project Page Template</a> which was adopted from the <a
+                href="https://nerfies.github.io" target="_blank">Nerfies</a> project page.
+              You are free to borrow the of this website, we just ask that you link back to this page in the footer.
+              <br> This website is licensed under a <a rel="license"
+                href="http://creativecommons.org/licenses/by-sa/4.0/" target="_blank">Creative
+                Commons Attribution-ShareAlike 4.0 International License</a>.
+            </p>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Statcounter tracking code -->
+
+  <!-- You can add a tracker to track page visits by creating an account at statcounter.com -->
+
+  <!-- End of Statcounter Code -->
+
+</body>
+
+</html>
