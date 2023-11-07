@@ -5,7 +5,9 @@
 ![main figure](./assets/main_fig.png)
 
 ## Installation
-Install requirements according to `requirements.txt`. Then install the base package cryostar by: `pip install -e .`
+
+- Create a conda enviroment: `conda create -n cryostar`
+- Install the package: `pip install -e .`
 
 ## Quick start
 
@@ -17,57 +19,62 @@ You may need to prepare the resources below before running `cryoSTAR`:
 - a pdb file (which has been docked into the concensus map)
 
 ### Training
-CryoSTAR runs two separate steps to train a atom generator and a density generator, following is an example:
+CryoSTAR operates through a two-stage approach where it independently trains an atom generator and a density generator. Here's an illustration of its process:
 
-1. train atom generator
+#### S1: Training the atom generator
+In this step, we generate an ensemble of coarse-grained protein structures from the particles. Note that the `pdb` file is used in this step and it should be docked into the concensus map!
+
 ```shell
 cd projects/star
 python train_atom.py atom_configs/10073.py
 ```
 
-results will be saved to `work_dirs/atom_xxxxx`, we evaluate every 12k steps. In the directory, you can see directories with the name `epoch-number_step-number`, choose the latest directory as final results by default.
+The outputs will be stored in the `work_dirs/atom_xxxxx` directory, and we perform evaluations every 12,000 steps. Within this directory, you'll observe sub-directories with the name `epoch-number_step-number`. We choose the most recent directory as the final results.
+
 ```text
 atom_xxxxx/
 ├── 0000_0000000/
 ├── ...
 ├── 0112_0096000/        # evaluation results
-│  ├── ckpt.pt          # model parameters
-│  ├── input_image.png  # visualization of input cryo-EM images
-│  ├── pca-1.pdb        # sampled coarse-grained atomic structures along 1st PCA axis
+│  ├── ckpt.pt           # model parameters
+│  ├── input_image.png   # visualization of input cryo-EM images
+│  ├── pca-1.pdb         # sampled coarse-grained atomic structures along 1st PCA axis
 │  ├── pca-2.pdb
 │  ├── pca-3.pdb
-│  ├── pred.pdb         # sampled structures at Kmeans cluster centers
+│  ├── pred.pdb          # sampled structures at Kmeans cluster centers
 │  ├── pred_gmm_image.png
-│  └── z.npy            # z corresponding to each particle，is a [num_of_particle, 8] matrix, this should be the input of the next step
-├── yyyymmdd_hhmmss.log  # console logs
-├── config.py            # experiment config
-└── train_atom.py        # a backup for the script
+│  └── z.npy             # the latent code of each particle
+|                        # a matrix whose shape is num_of_particle x 8
+├── yyyymmdd_hhmmss.log  # running logs
+├── config.py            # a backup of the config file
+└── train_atom.py        # a backup of the training script
 ```
 
-2. train density generator
-We use the $z$ assigned by step 1 as input, so change the input arguments `model.given_z` to the path of the latest z.npy here. Then run the following command to train a density generator.
+#### S2: Training the density generator
+
+In step 1, the atom generator assigns a latent code $z$ to each particle image. In this step, we will drop the encoder and directly use the latent code as a representation of a partcile. You can execute the subsequent command to initiate the training of a density generator.
 
 ```shell
 # change the xxx/z.npy path to the output of the above command
 python train_density.py density_configs/10073.py --cfg-options model.given_z=xxx/z.npy
 ```
 
-results will be saved to `work_dirs/density_xxxxx`, we evaluate every 5 epoch. Results are also save in directories with the name `epoch-number_step-number`, choose the latest directory as final results by default.
+Results will be saved to `work_dirs/density_xxxxx`, and each subdirectory has the name `epoch-number_step-number`. We choose the most recent directory as the final results.
 
 ```text
-density_xxxxx\
-├── 0004_0014470\          # evaluation results
-│  ├── ckpt.pt            # model parameters
-│  ├── vol_pca_1_000.mrc  # density sampled along PCA axis, named by vol_pca_pca-axis_serial-number.mrc
+density_xxxxx/
+├── 0004_0014470/          # evaluation results
+│  ├── ckpt.pt             # model parameters
+│  ├── vol_pca_1_000.mrc   # density sampled along the PCA axis, named by vol_pca_pca-axis_serial-number.mrc
 │  ├── ...
 │  ├── vol_pca_3_009.mrc
-│  ├── z.npy              # the given z, not changed
-│  ├── z_pca_1.txt        # sampled z values along the 1st PCA axis
+│  ├── z.npy
+│  ├── z_pca_1.txt         # sampled z values along the 1st PCA axis
 │  ├── z_pca_2.txt
 │  └── z_pca_3.txt
-├── yyyymmdd_hhmmss.log    # console logs
-├── config.py              # experiment config
-└── train_density.py       # a backup for the script
+├── yyyymmdd_hhmmss.log    # running logs
+├── config.py              # a backup of the config file
+└── train_density.py       # a backup of the training script
 ```
 
 
