@@ -1,3 +1,14 @@
+# This file contains code modified from parse_ctf_star.py and parse_ctf_csparc.py 
+# available at https://github.com/ml-struct-bio/cryodrgn/tree/main/cryodrgn/commands
+# 
+# Modifications include the consolidation of 'ctf' parameter name and 
+# accompanying modifications.
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
 from typing import Optional
 
 import numpy as np
