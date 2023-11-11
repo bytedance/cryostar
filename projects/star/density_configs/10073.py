@@ -27,7 +27,6 @@ ctf = dict(
     size=data["side_shape"],
     resolution=data["voxel_size"],  # equal to voxel_size
     kV=300,
-    valueNyquist=1.,
     cs=2.7,
     amplitudeContrast=0.1,
 )

@@ -52,7 +52,7 @@ class CTFRelion(CTFBase):
                  size=257,
                  resolution=0.8,
                  kV=300.0,
-                 valueNyquist=.001,
+                 valueNyquist=1.,
                  defocusU=1.,
                  defocusV=1.,
                  angleAstigmatism=0.,

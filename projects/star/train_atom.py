@@ -258,7 +258,6 @@ class CryoEMTask(pl.LightningModule):
         self.ctf = CTFRelion(size=cfg.ctf.size,
                              resolution=cfg.ctf.resolution,
                              kV=cfg.ctf.kV,
-                             valueNyquist=cfg.ctf.valueNyquist,
                              cs=cfg.ctf.cs,
                              amplitudeContrast=cfg.ctf.amplitudeContrast,
                              num_particles=len(dataset))
