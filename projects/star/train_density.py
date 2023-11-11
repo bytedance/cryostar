@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from mmengine import mkdir_or_exist
 
-from cryostar.dataio import StarfileDataSet, StarfileDatasetConfig
+from cryostar.utils.dataio import StarfileDataSet, StarfileDatasetConfig
 from cryostar.nerf.volume_utils import ImplicitFourierVolume
 from cryostar.utils.transforms import SpatialGridTranslate
 from cryostar.utils.ctf_utils import CTFRelion
