@@ -62,7 +62,7 @@ class CTFRelion(CTFBase):
                  bFactor=0.,
                  num_particles=500,
                  requires_grad=False,
-                 precompute=True,
+                 precompute=False,
                  flip_images=False):
         super(CTFRelion, self).__init__(resolution, num_particles, requires_grad)
         self.requires_grad = requires_grad

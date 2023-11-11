@@ -32,9 +32,7 @@ ctf = dict(
     valueNyquist=1.,
     cs=2.7,
     amplitudeContrast=0.1,
-    requires_grad=False,
-    precompute=False,  # False for large dataset
-    flip_images=False)
+)
 
 gmm = dict(tunable=False)
 

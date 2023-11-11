@@ -53,10 +53,7 @@ class CryoModel(pl.LightningModule):
                              valueNyquist=cfg.ctf.valueNyquist,
                              cs=cfg.ctf.cs,
                              amplitudeContrast=cfg.ctf.amplitudeContrast,
-                             requires_grad=False,
-                             num_particles=len(dataset),
-                             precompute=cfg.ctf.precompute,
-                             flip_images=cfg.ctf.flip_images)
+                             num_particles=len(dataset))
         self.vol = ImplicitFourierVolume(
             self.z_dim, self.cfg.data.side_shape, self.cfg.mask.mask_rad, {
                 "net_type": cfg.model.net_type,

@@ -264,10 +264,7 @@ class CryoEMTask(pl.LightningModule):
                                  valueNyquist=cfg.ctf.valueNyquist,
                                  cs=cfg.ctf.cs,
                                  amplitudeContrast=cfg.ctf.amplitudeContrast,
-                                 requires_grad=False,
-                                 num_particles=len(dataset),
-                                 precompute=cfg.ctf.precompute,
-                                 flip_images=cfg.ctf.flip_images)
+                                 num_particles=len(dataset))
 
         # translate image helper
         self.translator = SpatialGridTranslate(D=cfg.data.side_shape, device=self.device)
