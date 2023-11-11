@@ -12,7 +12,7 @@ from mmengine import mkdir_or_exist
 
 from cryostar.dataio import StarfileDataSet, StarfileDatasetConfig
 from cryostar.nerf.volume_utils import ImplicitFourierVolume
-from cryostar.pose.transforms import SpatialGridTranslate
+from cryostar.utils.transforms import SpatialGridTranslate
 from cryostar.utils.ctf_utils import CTFRelion
 from cryostar.utils.fft_utils import (fourier_to_primal_2d, primal_to_fourier_2d)
 from cryostar.utils.latent_space_utils import sample_along_pca, get_nearest_point, cluster_kmeans

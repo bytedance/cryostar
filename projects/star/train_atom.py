@@ -22,7 +22,7 @@ from lightning.pytorch.strategies import DDPStrategy
 from mmengine import mkdir_or_exist
 
 # pose estimation
-from cryostar.pose.transforms import SpatialGridTranslate
+from cryostar.utils.transforms import SpatialGridTranslate
 # other
 from cryostar.dataio import StarfileDataSet, StarfileDatasetConfig, Mask
 from cryostar.utils.ctf_utils import CTFRelion
