@@ -2,7 +2,7 @@ exp_name = ""
 eval_mode = False
 
 data = dict(
-    dataset_dir="bn_link/dataroot/cryodance/exps/4akeA_morph2/uniform_snr0-0001_ctf",
+    dataset_dir="tutorial_data_4ake/uniform_snr0-0001_ctf",
     starfile_name="simulation.star",
     starfile_apix=1.0,
     side_shape=128,
