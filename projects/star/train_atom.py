@@ -25,7 +25,7 @@ from mmengine import mkdir_or_exist
 from cryostar.pose.transforms import SpatialGridTranslate
 # other
 from cryostar.dataio import StarfileDataSet, StarfileDatasetConfig, Mask
-from cryostar.simulation.ctf_utils import CTFRelion
+from cryostar.utils.ctf_utils import CTFRelion
 from cryostar.utils.misc import log_to_current, \
     pl_init_exp, pretty_dict, set_seed, calc_cor_loss, calc_kl_loss
 from cryostar.utils.pdb_tools import bt_save_pdb
