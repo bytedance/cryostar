@@ -23,7 +23,6 @@ model = dict(shift_data=False,
              given_z=None)
 
 ctf = dict(
-    given=True,
     size=data["side_shape"],
     resolution=data["voxel_size"],  # equal to voxel_size
     kV=300,

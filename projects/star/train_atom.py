@@ -255,16 +255,13 @@ class CryoEMTask(pl.LightningModule):
         grid = EMAN2Grid(side_shape=cfg.data.side_shape, voxel_size=cfg.data.voxel_size)
         self.grid = grid
 
-        # ctf, currently ctf.given = False don't use ctf
-        self.do_ctf = cfg.ctf.given
-        if self.do_ctf:
-            self.ctf = CTFRelion(size=cfg.ctf.size,
-                                 resolution=cfg.ctf.resolution,
-                                 kV=cfg.ctf.kV,
-                                 valueNyquist=cfg.ctf.valueNyquist,
-                                 cs=cfg.ctf.cs,
-                                 amplitudeContrast=cfg.ctf.amplitudeContrast,
-                                 num_particles=len(dataset))
+        self.ctf = CTFRelion(size=cfg.ctf.size,
+                             resolution=cfg.ctf.resolution,
+                             kV=cfg.ctf.kV,
+                             valueNyquist=cfg.ctf.valueNyquist,
+                             cs=cfg.ctf.cs,
+                             amplitudeContrast=cfg.ctf.amplitudeContrast,
+                             num_particles=len(dataset))
 
         # translate image helper
         self.translator = SpatialGridTranslate(D=cfg.data.side_shape, device=self.device)
@@ -360,8 +357,7 @@ class CryoEMTask(pl.LightningModule):
         pred_gmm_images = self._shared_projection(pred_struc, rot_mats)
 
         # apply ctf, low-pass
-        if self.do_ctf:
-            pred_gmm_images = self._apply_ctf(batch, pred_gmm_images, self.lp_mask2d)
+        pred_gmm_images = self._apply_ctf(batch, pred_gmm_images, self.lp_mask2d)
 
         if trans_mats is not None:
             gt_images = self.translator.transform(einops.rearrange(gt_images, "B 1 NY NX -> B NY NX"),

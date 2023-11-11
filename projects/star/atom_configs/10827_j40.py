@@ -27,7 +27,6 @@ mask = dict(
     mask_rad=0.9375)
 
 ctf = dict(
-    given=True,
     size=data["side_shape"],
     resolution=data["voxel_size"],  # equal to voxel_size
     kV=300,
