@@ -39,7 +39,7 @@ from cryostar.utils.dist_loss import (find_quaint_cutoff_pairs, find_range_cutof
 from miscs import save_tensor_image, warmup, calc_pair_dist_loss, calc_clash_loss, \
     merge_step_outputs, squeeze_dict_outputs_1st_dim, get_1st_unique_indices, filter_outputs_by_indices, \
     get_nearest_point, cluster_kmeans, run_umap, plot_z_dist, low_pass_mask2d, \
-    run_pca, get_pc_traj, E3Deformer, VAE, NMADeformer
+    run_pca, get_pc_traj, E3Deformer, VAE, NMADeformer, infer_ctf_params_from_config
 
 # avoid num_workers set as cpu_count warning
 warnings.simplefilter("ignore", PossibleUserWarning)
@@ -255,12 +255,9 @@ class CryoEMTask(pl.LightningModule):
         grid = EMAN2Grid(side_shape=cfg.data.side_shape, voxel_size=cfg.data.voxel_size)
         self.grid = grid
 
-        self.ctf = CTFRelion(size=cfg.ctf.size,
-                             resolution=cfg.ctf.resolution,
-                             kV=cfg.ctf.kV,
-                             cs=cfg.ctf.cs,
-                             amplitudeContrast=cfg.ctf.amplitudeContrast,
-                             num_particles=len(dataset))
+        ctf_params = infer_ctf_params_from_config(cfg)
+        self.ctf = CTFRelion(**ctf_params, num_particles=len(dataset))
+        log_to_current(ctf_params)
 
         # translate image helper
         self.translator = SpatialGridTranslate(D=cfg.data.side_shape, device=self.device)

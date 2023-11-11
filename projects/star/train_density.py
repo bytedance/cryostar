@@ -20,6 +20,8 @@ from cryostar.utils.misc import (pl_init_exp, calc_kl_loss, create_circular_mask
 from cryostar.utils.ml_modules import VAEEncoder
 from cryostar.utils.mrc_tools import save_mrc
 
+from miscs import infer_ctf_params_from_config
+
 log_to_current = rank_zero_only(log_to_current)
 
 TASK_NAME = "density"
@@ -47,12 +49,11 @@ class CryoModel(pl.LightningModule):
             else:
                 raise NotImplementedError
         self.translate = SpatialGridTranslate(self.cfg.data.side_shape, )
-        self.ctf = CTFRelion(size=cfg.ctf.size,
-                             resolution=cfg.ctf.resolution,
-                             kV=cfg.ctf.kV,
-                             cs=cfg.ctf.cs,
-                             amplitudeContrast=cfg.ctf.amplitudeContrast,
-                             num_particles=len(dataset))
+
+        ctf_params = infer_ctf_params_from_config(cfg)
+        self.ctf = CTFRelion(**ctf_params, num_particles=len(dataset))
+        log_to_current(ctf_params)
+
         self.vol = ImplicitFourierVolume(
             self.z_dim, self.cfg.data.side_shape, self.cfg.mask.mask_rad, {
                 "net_type": cfg.model.net_type,

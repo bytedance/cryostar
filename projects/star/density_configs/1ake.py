@@ -22,13 +22,13 @@ model = dict(shift_data=False,
              net_type="cryodrgn",
              given_z=None)
 
-ctf = dict(
-    size=data["side_shape"],
-    resolution=data["voxel_size"],  # equal to voxel_size
-    kV=300,
-    cs=2.7,
-    amplitudeContrast=0.1,
-)
+# ctf = dict(
+#     size=data["side_shape"],
+#     resolution=data["voxel_size"],  # equal to voxel_size
+#     kV=300,
+#     cs=2.7,
+#     amplitudeContrast=0.1,
+# )
 
 mask = dict(mask_rad=1)
 
