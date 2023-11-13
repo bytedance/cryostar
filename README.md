@@ -1,11 +1,14 @@
 # CryoSTAR
 
+[🏠 Homepage](https://bytedance.github.io/cryostar/) |
+[📚 User Guide](https://byte-research.gitbook.io/cryostar/)
+
 `CryoSTAR` is a neural network based framework for recovering conformational heterogenity of protein complexes. By leveraging the structural prior and constraints from a reference `pdb` model, `cryoSTAR` can output both the protein structure and density map.
 
 ![main figure](./assets/main_fig.png)
 
-## Documentation
-The detailed documentation can be found at [here](https://byte-research.gitbook.io/cryostar/). This comprehensive guide provides in-depth information about the topic at hand. Feel free to visit the link if you're seeking more knowledge or need extensive instructions regarding the topic. 
+## User Guide
+The detailed user guide can be found at [here](https://byte-research.gitbook.io/cryostar/). This comprehensive guide provides in-depth information about the topic at hand. Feel free to visit the link if you're seeking more knowledge or need extensive instructions regarding the topic. 
 
 ## Installation
 
