@@ -4,6 +4,9 @@
 
 ![main figure](./assets/main_fig.png)
 
+## Documentation
+The detailed documentation can be found at [here](https://byte-research.gitbook.io/cryostar/). This comprehensive guide provides in-depth information about the topic at hand. Feel free to visit the link if you're seeking more knowledge or need extensive instructions regarding the topic. 
+
 ## Installation
 
 - Create a conda enviroment: `conda create -n cryostar`
