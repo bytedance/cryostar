@@ -52,7 +52,7 @@ class CTFRelion(CTFBase):
                  size=257,
                  resolution=0.8,
                  kV=300.0,
-                 valueNyquist=.001,
+                 valueNyquist=1.,
                  defocusU=1.,
                  defocusV=1.,
                  angleAstigmatism=0.,
@@ -62,7 +62,7 @@ class CTFRelion(CTFBase):
                  bFactor=0.,
                  num_particles=500,
                  requires_grad=False,
-                 precompute=True,
+                 precompute=False,
                  flip_images=False):
         super(CTFRelion, self).__init__(resolution, num_particles, requires_grad)
         self.requires_grad = requires_grad

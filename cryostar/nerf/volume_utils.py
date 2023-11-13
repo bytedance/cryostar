@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 import einops
-from cryostar.pose.transforms import shift_coords
+from cryostar.utils.transforms import shift_coords
 from cryostar.nerf.ml_modules import FourierNet
 from cryostar.utils.misc import create_sphere_mask, create_circular_mask
 from cryostar.utils.fft_utils import batch_hartley_to_fourier_2d, hartley_to_fourier_3d

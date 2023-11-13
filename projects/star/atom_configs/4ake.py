@@ -1,15 +1,12 @@
 data = dict(
-    dataset_dir="bn_link/dataroot/cryodance/exps/4akeA_morph2/uniform_snr0-0001_ctf",
+    dataset_dir="tutorial_data_4ake/uniform_snr0-0001_ctf",
     starfile_name="simulation.star",
     starfile_apix=1.0,
-    # ref structure
-    ref_path="bn_link/dataroot/cryodance/exps/4akeA_morph2/pdbs/4akeA_1.pdb",
+    ref_path="tutorial_data_4ake/pdbs/4akeA_1.pdb",
     nma_path="",
-    # nma_path="bn_link/dataroot/cryodance/exps/4akeA_morph2/4akeA_1_nma.npy",
     side_shape=128,
     voxel_size=1.0,
     lp_bandwidth=4.0,  # low-pass bandwidth
-    # control if gt images will be masked, almost always None
     mask_rad=1.0,
     train_batch_per_gpu=64,
     val_batch_per_gpu=128,
@@ -27,17 +24,13 @@ mask = dict(
     # control the mask during training
     mask_rad=0.9375)
 
-ctf = dict(
-    given=True,
-    size=data["side_shape"],
-    resolution=data["voxel_size"],  # equal to voxel_size
-    kV=300,
-    valueNyquist=1.,
-    cs=2.7,
-    amplitudeContrast=0.1,
-    requires_grad=False,
-    precompute=False,  # False for large dataset
-    flip_images=False)
+# ctf = dict(
+#     size=data["side_shape"],
+#     resolution=data["voxel_size"],  # equal to voxel_size
+#     kV=300,
+#     cs=2.7,
+#     amplitudeContrast=0.1,
+# )
 
 gmm = dict(tunable=False)
 

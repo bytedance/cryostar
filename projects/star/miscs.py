@@ -32,6 +32,7 @@ from cryostar.utils.polymer import get_num_electrons
 from cryostar.utils.misc import log_to_current, ASSERT_SHAPE
 from cryostar.utils.latent_space_utils import run_umap, run_pca, get_pc_traj, get_nearest_point, cluster_kmeans # noqa
 from cryostar.utils.ml_modules import VAEEncoder, Decoder, reparameterize
+from cryostar.utils.ctf import parse_ctf_star
 
 from lightning.pytorch.utilities import rank_zero_only
 from typing import Union
@@ -40,6 +41,19 @@ from abc import abstractmethod, ABC
 
 CA_CA = round(ca_ca, 2)
 log_to_current = rank_zero_only(log_to_current)
+
+
+def infer_ctf_params_from_config(cfg):
+    star_file_path = Path(cfg.data.dataset_dir) / cfg.data.starfile_name
+    ctf_params = parse_ctf_star(star_file_path, side_shape=cfg.data.side_shape, apix=cfg.data.voxel_size)[0].tolist()
+    ctf_params = {
+        "size": int(ctf_params[0]),
+        "resolution": ctf_params[1],
+        "kV": ctf_params[5],
+        "cs": ctf_params[6],
+        "amplitudeContrast": ctf_params[7]
+    }
+    return ctf_params
 
 
 def to_atoms(positions):
@@ -949,7 +963,7 @@ class NMADeformer(torch.nn.Module, DeformerProtocol):
     def transform(self, deformation, coords):
         ASSERT_SHAPE(coords, (self.num_coords, 3))
         ASSERT_SHAPE(deformation, (None, 6 + self.num_modes))
-        
+
         axis_angle = deformation[..., :3]
         translation = deformation[..., 3:6] * 10
         nma_coeff = deformation[..., 6:]
@@ -1001,4 +1015,3 @@ class VAE(nn.Module):
         z = reparameterize(mean, log_var)
         out = self.decoder(z)
         return out, mean, log_var
-

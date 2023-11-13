@@ -10,15 +10,17 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from mmengine import mkdir_or_exist
 
-from cryostar.dataio import StarfileDataSet, StarfileDatasetConfig
+from cryostar.utils.dataio import StarfileDataSet, StarfileDatasetConfig
 from cryostar.nerf.volume_utils import ImplicitFourierVolume
-from cryostar.pose.transforms import SpatialGridTranslate
-from cryostar.simulation.ctf_utils import CTFRelion
+from cryostar.utils.transforms import SpatialGridTranslate
+from cryostar.utils.ctf_utils import CTFRelion
 from cryostar.utils.fft_utils import (fourier_to_primal_2d, primal_to_fourier_2d)
 from cryostar.utils.latent_space_utils import sample_along_pca, get_nearest_point, cluster_kmeans
 from cryostar.utils.misc import (pl_init_exp, calc_kl_loss, create_circular_mask, log_to_current, pretty_dict)
 from cryostar.utils.ml_modules import VAEEncoder
 from cryostar.utils.mrc_tools import save_mrc
+
+from miscs import infer_ctf_params_from_config
 
 log_to_current = rank_zero_only(log_to_current)
 
@@ -47,16 +49,11 @@ class CryoModel(pl.LightningModule):
             else:
                 raise NotImplementedError
         self.translate = SpatialGridTranslate(self.cfg.data.side_shape, )
-        self.ctf = CTFRelion(size=cfg.ctf.size,
-                             resolution=cfg.ctf.resolution,
-                             kV=cfg.ctf.kV,
-                             valueNyquist=cfg.ctf.valueNyquist,
-                             cs=cfg.ctf.cs,
-                             amplitudeContrast=cfg.ctf.amplitudeContrast,
-                             requires_grad=False,
-                             num_particles=len(dataset),
-                             precompute=cfg.ctf.precompute,
-                             flip_images=cfg.ctf.flip_images)
+
+        ctf_params = infer_ctf_params_from_config(cfg)
+        self.ctf = CTFRelion(**ctf_params, num_particles=len(dataset))
+        log_to_current(ctf_params)
+
         self.vol = ImplicitFourierVolume(
             self.z_dim, self.cfg.data.side_shape, self.cfg.mask.mask_rad, {
                 "net_type": cfg.model.net_type,

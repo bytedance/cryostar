@@ -26,17 +26,13 @@ mask = dict(
     # control the mask during training
     mask_rad=0.9375)
 
-ctf = dict(
-    given=True,
-    size=data["side_shape"],
-    resolution=data["voxel_size"],  # equal to voxel_size
-    kV=300,
-    valueNyquist=1.,
-    cs=2.0,
-    amplitudeContrast=0.1,
-    requires_grad=False,
-    precompute=False,  # False for large dataset
-    flip_images=False)
+# ctf = dict(
+#     size=data["side_shape"],
+#     resolution=data["voxel_size"],  # equal to voxel_size
+#     kV=300,
+#     cs=2.0,
+#     amplitudeContrast=0.1,
+# )
 
 gmm = dict(tunable=False)
 

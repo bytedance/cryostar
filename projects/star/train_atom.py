@@ -22,10 +22,10 @@ from lightning.pytorch.strategies import DDPStrategy
 from mmengine import mkdir_or_exist
 
 # pose estimation
-from cryostar.pose.transforms import SpatialGridTranslate
+from cryostar.utils.transforms import SpatialGridTranslate
 # other
-from cryostar.dataio import StarfileDataSet, StarfileDatasetConfig, Mask
-from cryostar.simulation.ctf_utils import CTFRelion
+from cryostar.utils.dataio import StarfileDataSet, StarfileDatasetConfig, Mask
+from cryostar.utils.ctf_utils import CTFRelion
 from cryostar.utils.misc import log_to_current, \
     pl_init_exp, pretty_dict, set_seed, calc_cor_loss, calc_kl_loss
 from cryostar.utils.pdb_tools import bt_save_pdb
@@ -39,7 +39,7 @@ from cryostar.utils.dist_loss import (find_quaint_cutoff_pairs, find_range_cutof
 from miscs import save_tensor_image, warmup, calc_pair_dist_loss, calc_clash_loss, \
     merge_step_outputs, squeeze_dict_outputs_1st_dim, get_1st_unique_indices, filter_outputs_by_indices, \
     get_nearest_point, cluster_kmeans, run_umap, plot_z_dist, low_pass_mask2d, \
-    run_pca, get_pc_traj, E3Deformer, VAE, NMADeformer
+    run_pca, get_pc_traj, E3Deformer, VAE, NMADeformer, infer_ctf_params_from_config
 
 # avoid num_workers set as cpu_count warning
 warnings.simplefilter("ignore", PossibleUserWarning)
@@ -255,19 +255,9 @@ class CryoEMTask(pl.LightningModule):
         grid = EMAN2Grid(side_shape=cfg.data.side_shape, voxel_size=cfg.data.voxel_size)
         self.grid = grid
 
-        # ctf, currently ctf.given = False don't use ctf
-        self.do_ctf = cfg.ctf.given
-        if self.do_ctf:
-            self.ctf = CTFRelion(size=cfg.ctf.size,
-                                 resolution=cfg.ctf.resolution,
-                                 kV=cfg.ctf.kV,
-                                 valueNyquist=cfg.ctf.valueNyquist,
-                                 cs=cfg.ctf.cs,
-                                 amplitudeContrast=cfg.ctf.amplitudeContrast,
-                                 requires_grad=False,
-                                 num_particles=len(dataset),
-                                 precompute=cfg.ctf.precompute,
-                                 flip_images=cfg.ctf.flip_images)
+        ctf_params = infer_ctf_params_from_config(cfg)
+        self.ctf = CTFRelion(**ctf_params, num_particles=len(dataset))
+        log_to_current(ctf_params)
 
         # translate image helper
         self.translator = SpatialGridTranslate(D=cfg.data.side_shape, device=self.device)
@@ -363,8 +353,7 @@ class CryoEMTask(pl.LightningModule):
         pred_gmm_images = self._shared_projection(pred_struc, rot_mats)
 
         # apply ctf, low-pass
-        if self.do_ctf:
-            pred_gmm_images = self._apply_ctf(batch, pred_gmm_images, self.lp_mask2d)
+        pred_gmm_images = self._apply_ctf(batch, pred_gmm_images, self.lp_mask2d)
 
         if trans_mats is not None:
             gt_images = self.translator.transform(einops.rearrange(gt_images, "B 1 NY NX -> B NY NX"),
