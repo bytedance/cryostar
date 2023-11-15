@@ -80,10 +80,14 @@ if __name__ == "__main__":
     # currently configuration with pyproject.toml is *BETA*
     setup(name='cryostar',
           version='0.1.0',
-          packages=[
-              'cryostar',
-          ],
-          license='MIT License',
+          packages=['cryostar', ],
+          entry_points=
+          {'console_scripts': [
+              'show_mrc_info=cryostar.cli_tools.sak:show_mrc_info',
+              'center_origin=cryostar.cli_tools.sak:center_origin',
+              'generate_gaussian_density=cryostar.cli_tools.sak:generate_gaussian_density'
+          ], },
+          license='Apache-2.0 License',
           author='Yi Zhou, Jing Yuan, Yilai Li',
           author_email='zhouyi.naive@bytedance.com, yuanjing.eugene@bytedance.com, yilai.li@bytedance.com',
           description='ByteResearch CryoEM package',

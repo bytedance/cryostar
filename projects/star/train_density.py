@@ -1,4 +1,5 @@
 import os
+import os.path as osp
 
 import einops
 import lightning.pytorch as pl
@@ -35,43 +36,43 @@ class CryoModel(pl.LightningModule):
         self.dataset = dataset
         self.z_dim = cfg.model.z_dim
         self.history_saved_dirs = []
-        if cfg.model.given_z is None and self.z_dim != 0:
+        if cfg.extra_input_data_attr.given_z is None and self.z_dim != 0:
             if cfg.model.enc_space == "real":
-                self.encoder = VAEEncoder(self.cfg.data.side_shape**2,
+                self.encoder = VAEEncoder(self.cfg.data_process.down_side_shape**2,
                                           cfg.model.hidden,
                                           self.z_dim,
                                           num_hidden_layers=4)
             elif cfg.model.enc_space == "fourier":
-                self.encoder = VAEEncoder(2 * self.cfg.data.side_shape**2,
+                self.encoder = VAEEncoder(2 * self.cfg.data_process.down_side_shape**2,
                                           cfg.model.hidden,
                                           self.z_dim,
                                           num_hidden_layers=4)
             else:
                 raise NotImplementedError
-        self.translate = SpatialGridTranslate(self.cfg.data.side_shape, )
+        self.translate = SpatialGridTranslate(self.cfg.data_process.down_side_shape, )
 
         ctf_params = infer_ctf_params_from_config(cfg)
         self.ctf = CTFRelion(**ctf_params, num_particles=len(dataset))
         log_to_current(ctf_params)
 
         self.vol = ImplicitFourierVolume(
-            self.z_dim, self.cfg.data.side_shape, self.cfg.mask.mask_rad, {
+            self.z_dim, self.cfg.data_process.down_side_shape, self.cfg.mask.mask_rad, {
                 "net_type": cfg.model.net_type,
-                "pe_dim": self.cfg.data.side_shape,
-                "D": self.cfg.data.side_shape,
+                "pe_dim": self.cfg.data_process.down_side_shape,
+                "D": self.cfg.data_process.down_side_shape,
                 "pe_type": cfg.model.pe_type,
                 "force_symmetry": False,
                 "hidden": cfg.model.hidden,
             }, None)
-        mask = create_circular_mask(self.cfg.data.side_shape, self.cfg.data.side_shape, None,
-                                    self.cfg.data.side_shape // 2 * self.cfg.mask.mask_rad)
+        mask = create_circular_mask(self.cfg.data_process.down_side_shape, self.cfg.data_process.down_side_shape, None,
+                                    self.cfg.data_process.down_side_shape // 2 * self.cfg.mask.mask_rad)
         self.register_buffer("mask", torch.from_numpy(mask))
-        if cfg.model.given_z is not None:
-            self.register_buffer("given_z", torch.from_numpy(np.load(cfg.model.given_z)))
+        if cfg.extra_input_data_attr.given_z is not None:
+            self.register_buffer("given_z", torch.from_numpy(np.load(cfg.extra_input_data_attr.given_z)))
 
-        if getattr(self.cfg, "ckpt_path", None) is not None:
-            log_to_current(f"load checkpoint from {self.cfg.ckpt_path}")
-            state_dict = torch.load(self.cfg.ckpt_path, map_location=self.device)
+        if getattr(self.cfg.extra_input_data_attr, "ckpt_path", None) is not None:
+            log_to_current(f"load checkpoint from {self.cfg.extra_input_data_attr.ckpt_path}")
+            state_dict = torch.load(self.cfg.extra_input_data_attr.ckpt_path, map_location=self.device)
             self.vol.load_state_dict(state_dict)
 
     def _get_save_dir(self):
@@ -83,8 +84,8 @@ class CryoModel(pl.LightningModule):
         R = batch["rotmat"]
         bsz = len(R)
         trans = torch.cat([
-            batch["shiftY"].float().reshape(bsz, 1, 1) / self.cfg.data.voxel_size,
-            batch["shiftX"].float().reshape(bsz, 1, 1) / self.cfg.data.voxel_size
+            batch["shiftY"].float().reshape(bsz, 1, 1) / self.cfg.data_process.down_apix,
+            batch["shiftX"].float().reshape(bsz, 1, 1) / self.cfg.data_process.down_apix
         ],
                           dim=2)
         proj_in = batch["proj"].to(self.device)
@@ -101,7 +102,7 @@ class CryoModel(pl.LightningModule):
         f_proj_in = primal_to_fourier_2d(proj_in)
 
         if self.z_dim != 0:
-            if self.cfg.model.given_z is not None:
+            if self.cfg.extra_input_data_attr.given_z is not None:
                 mu = self.given_z[batch["idx"]].reshape(bsz, -1)
                 kld_loss = 0.0
             else:
@@ -169,9 +170,9 @@ class CryoModel(pl.LightningModule):
             #             log_to_current(f"delete {p} to keep last {keep_last_k} ckpts")
 
     def evaluate(self) -> None:
-        pixel_size = self.cfg.data.voxel_size
+        pixel_size = self.cfg.data_process.down_apix
         valid_loader = DataLoader(dataset=self.dataset,
-                                  batch_size=self.cfg.data.val_batch_per_gpu,
+                                  batch_size=self.cfg.data_loader.val_batch_per_gpu,
                                   shuffle=False,
                                   drop_last=False,
                                   num_workers=12)
@@ -179,7 +180,7 @@ class CryoModel(pl.LightningModule):
             save_dir = self._get_save_dir()
             self.save_ckpt()
             if self.z_dim != 0:
-                if self.cfg.model.given_z is None:
+                if self.cfg.extra_input_data_attr.given_z is None:
                     zs = []
                     for batch in tqdm(iter(valid_loader)):
                         proj_in, proj_out = self.process_image(batch)
@@ -242,28 +243,45 @@ def train():
 
     dataset = StarfileDataSet(
         StarfileDatasetConfig(
-            path_to_file=cfg.data.dataset_dir,  #
-            side_len=cfg.data.side_shape,
-            file=cfg.data.starfile_name,
-            mask_rad=1.0,
+            dataset_dir=cfg.dataset_attr.dataset_dir,
+            starfile_path=cfg.dataset_attr.starfile_path,
+            apix=cfg.dataset_attr.apix,
+            side_shape=cfg.dataset_attr.side_shape,
+            down_side_shape=cfg.data_process.down_side_shape,
+            mask_rad=cfg.data_process.mask_rad,
             power_images=1.0,
-            no_trans=False,
-            invert_hand=True))
-    dataset.apix = cfg.data.starfile_apix
+            ignore_rots=False,
+            ignore_trans=False, ))
 
-    if cfg.data.f_mu is not None:
-        dataset.f_mu = cfg.data.f_mu
-        dataset.f_std = cfg.data.f_std
+    #
+    if cfg.dataset_attr.apix is None:
+        cfg.dataset_attr.apix = dataset.apix
+    if cfg.dataset_attr.side_shape is None:
+        cfg.dataset_attr.side_shape = dataset.side_shape
+    if cfg.data_process.down_side_shape is None:
+        if dataset.side_shape > 256:
+            cfg.data_process.down_side_shape = 256
+            dataset.down_side_shape = 256
+        else:
+            cfg.data_process.down_side_shape = dataset.down_side_shape
+
+    cfg.data_process["down_apix"] = dataset.apix
+    if dataset.down_side_shape != dataset.side_shape:
+        cfg.data_process.down_apix = dataset.side_shape * dataset.apix / dataset.down_side_shape
+
+    rank_zero_only(cfg.dump)(osp.join(cfg.work_dir, "config.py"))
+
+    if cfg.dataset_attr.f_mu is not None:
+        dataset.f_mu = cfg.dataset_attr.f_mu
+        dataset.f_std = cfg.dataset_attr.f_std
     else:
         dataset.estimate_normalization()
 
     cryo_model = CryoModel(cfg, dataset)
-    train_loader = DataLoader(dataset=dataset, batch_size=cfg.data.train_batch_per_gpu, shuffle=True, num_workers=4)
-    # valid_loader = DataLoader(dataset=dataset,
-    #                           batch_size=cfg.data.val_batch_per_gpu,
-    #                           shuffle=False,
-    #                           drop_last=False,
-    #                           num_workers=12)
+    train_loader = DataLoader(dataset=dataset,
+                              batch_size=cfg.data_loader.train_batch_per_gpu,
+                              shuffle=True,
+                              num_workers=cfg.data_loader.workers_per_gpu)
 
     trainer = pl.Trainer(max_epochs=cfg.trainer.max_epochs,
                          devices=cfg.trainer.devices,

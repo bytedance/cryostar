@@ -4,7 +4,6 @@ import starfile
 import cv2
 import numpy as np
 from scipy.spatial import distance
-from ase import Atom, Atoms
 import biotite.structure as struc
 from PIL import Image
 from torchvision.transforms import ToPILImage
@@ -44,8 +43,9 @@ log_to_current = rank_zero_only(log_to_current)
 
 
 def infer_ctf_params_from_config(cfg):
-    star_file_path = Path(cfg.data.dataset_dir) / cfg.data.starfile_name
-    ctf_params = parse_ctf_star(star_file_path, side_shape=cfg.data.side_shape, apix=cfg.data.voxel_size)[0].tolist()
+    star_file_path = Path(cfg.dataset_attr.starfile_path)
+    ctf_params = parse_ctf_star(star_file_path, side_shape=cfg.data_process.down_side_shape,
+                                apix=cfg.data_process.down_apix)[0].tolist()
     ctf_params = {
         "size": int(ctf_params[0]),
         "resolution": ctf_params[1],
@@ -54,17 +54,6 @@ def infer_ctf_params_from_config(cfg):
         "amplitudeContrast": ctf_params[7]
     }
     return ctf_params
-
-
-def to_atoms(positions):
-    return Atoms([Atom("C", p) for p in positions])
-
-
-def save_pdb(pos, save_path):
-    if isinstance(pos, torch.Tensor):
-        pos = pos.detach().cpu().numpy()
-    chain = to_atoms(pos)
-    chain.write(save_path, format="proteindatabank")
 
 
 def annealer(period, sleep=0, lower=0.0, upper=1.0):

@@ -1,4 +1,5 @@
-import os
+import os.path as osp
+from pathlib import Path
 from dataclasses import dataclass, field
 
 import mrcfile
@@ -30,67 +31,78 @@ class Mask(torch.nn.Module):
 #yapf: disable
 @dataclass
 class StarfileDatasetConfig:
-    path_to_file: str
-    file:         str
-    side_len:     int   = field(default=None,
-        metadata={"help": "If specifid, the image will be resized."})
-    mask_rad:     float = None
-    scale_images: float = 1.0
-    power_images:  float = field(default=1.0,
-        metadata={"help": "Change the power of the signal by mutliplying a constant number."})
-    no_trans:     bool  = False
-    no_rot:       bool  = False
-    invert_hand:  bool  = field(default=False,
-        metadata={"help": "Invert handedness when reading relion data."})
+    dataset_dir:     str
+    starfile_path:   str
+    # if is not specified, the following apix, and side_shape will be inferred from starfile
+    apix:            float = None
+    side_shape:      int   = None
+    # down-sample the original image or not
+    down_side_shape: int   = None
+    # apply a circular mask on input image or not
+    mask_rad:        float = None
+    # change image values
+    scale_images:    float = 1.0
+    power_images:    float = field(
+        default=1.0,
+        metadata={"help": "Change the power of the signal by multiplying a constant number."})
+    # ignore pose from starfile or not
+    ignore_trans:    bool  = False
+    ignore_rots:     bool  = False
+    # invert_hand:     bool  = field(
+    #     default=False,
+    #     metadata={"help": "Invert handedness when reading relion data."})
 #yapf: enable
 
 
 class StarfileDataSet(Dataset):
 
     def __init__(self, cfg: StarfileDatasetConfig):
-        super(StarfileDataSet, self).__init__()
+        super().__init__()
         self.cfg = cfg
-        self.df = starfile.read(os.path.join(cfg.path_to_file, cfg.file))
-        if "optics" not in self.df:
-            df = self.df
-            # yapf: disable
-            self.df = {
-                "optics": {
-                    "rlnVoltage": {0: 300.0},
-                    "rlnSphericalAberration": {0: 2.7},
-                    "rlnAmplitudeContrast": {0: 0.1},
-                    "rlnOpticsGroup": {0: 1},
-                    "rlnImageSize": {0: 64},
-                    "rlnImagePixelSize": {0: 3.77}
-                },
-                "particles": df
-            }
-            # yapf: enable
-        self.num_projs = len(self.df["particles"])
+        self.df = starfile.read(Path(cfg.starfile_path))
 
-        self.true_sidelen = self.df["optics"]["rlnImageSize"][0]
-        if cfg.side_len is None:
-            self.vol_sidelen = self.df["optics"]["rlnImageSize"][0]
+        if "optics" in self.df:
+            optics_df = self.df["optics"]
+            particles_df = self.df["particles"]
         else:
-            self.vol_sidelen = cfg.side_len
+            optics_df = None
+            particles_df = self.df
+        self.particles_df = particles_df
+
+        if cfg.apix is None:
+            if optics_df is not None and "rlnImagePixelSize" in optics_df:
+                self.apix = float(optics_df["rlnImagePixelSize"][0])
+                print(f"Infer dataset apix={self.apix} from first optic group.")
+            elif "rlnDetectorPixelSize" in particles_df and "rlnMagnification" in particles_df:
+                self.apix = float(particles_df["rlnDetectorPixelSize"][0] / particles_df["rlnMagnification"][0] * 1e4)
+                print(f"Infer dataset apix={self.apix} from first particle meta data.")
+            else:
+                raise AttributeError("Cannot parse apix from starfile, please set it in config by hand.")
+        else:
+            self.apix = cfg.apix
+
+        if cfg.side_shape is None:
+            tmp_mrc_path = osp.join(cfg.dataset_dir, particles_df["rlnImageName"][0].split('@')[-1])
+            with mrcfile.mmap(tmp_mrc_path, mode="r", permissive=True) as m:
+                self.side_shape = m.data.shape[-1]
+            print(f"Infer dataset side_shape={self.side_shape} from the 1st particle.")
+        else:
+            self.side_shape = cfg.side_shape
+
+        self.num_proj = len(particles_df)
+
+        self.down_side_shape = self.side_shape
+        if cfg.down_side_shape is not None:
+            self.down_side_shape = cfg.down_side_shape
 
         if cfg.mask_rad is not None:
-            self.mask = Mask(self.vol_sidelen, cfg.mask_rad)
+            self.mask = Mask(self.down_side_shape, cfg.mask_rad)
 
         self.f_mu = None
         self.f_std = None
-        self._apix = None
-
-    @property
-    def apix(self):
-        return self._apix
-
-    @apix.setter
-    def apix(self, apix):
-        self._apix = apix
 
     def __len__(self):
-        return self.num_projs
+        return self.num_proj
 
     def estimate_normalization(self):
         if self.f_mu is None and self.f_std is None:
@@ -106,71 +118,73 @@ class StarfileDataSet(Dataset):
             raise Exception("The normalization factor has been estimated!")
 
     def __getitem__(self, idx):
-        particle = self.df["particles"].iloc[idx]
+        item_row = self.particles_df.iloc[idx]
         try:
-            # Load particle image from mrcs file
-            imgname_raw = particle["rlnImageName"]
-            imgnamedf = particle["rlnImageName"].split("@")
-            mrc_path = os.path.join(self.cfg.path_to_file, imgnamedf[1])
-            pidx = int(imgnamedf[0]) - 1
+            img_name_raw = item_row["rlnImageName"]
+            in_mrc_idx, img_name = item_row["rlnImageName"].split("@")
+            in_mrc_idx = int(in_mrc_idx) - 1
+            mrc_path = osp.join(self.cfg.dataset_dir, img_name)
             with mrcfile.mmap(mrc_path, mode="r", permissive=True) as mrc:
                 if mrc.data.ndim > 2:
-                    proj = torch.from_numpy(np.array(mrc.data[pidx])).float() * self.cfg.scale_images
+                    proj = torch.from_numpy(np.array(mrc.data[in_mrc_idx])).float() * self.cfg.scale_images
                 else:
                     # the mrcs file can contain only one particle
                     proj = torch.from_numpy(np.array(mrc.data)).float() * self.cfg.scale_images
+
+            # get (1, side_shape, side_shape) proj
             if len(proj.shape) == 2:
                 proj = proj[None, :, :]  # add a dummy channel (for consistency w/ img fmt)
             else:
                 assert len(proj.shape) == 3 and proj.shape[0] == 1  # some starfile already have a dummy channel
 
-            if self.vol_sidelen != self.true_sidelen:
-                proj = tvf.resize(proj, [self.vol_sidelen] * 2, antialias=True)
+            # down-sample
+            if self.down_side_shape != self.side_shape:
+                proj = tvf.resize(proj, [self.down_side_shape, ] * 2, antialias=True)
 
             if self.cfg.mask_rad is not None:
                 proj = self.mask(proj)
 
         except Exception as e:
-            print(f"WARNING: Particle image {imgname_raw} invalid! Setting to zeros.")
+            print(f"WARNING: Particle image {img_name_raw} invalid! Setting to zeros.")
             print(e)
-            proj = torch.zeros(self.vol_sidelen, self.vol_sidelen)
-            proj = proj[None, :, :]
+            proj = torch.zeros(1, self.down_side_shape, self.down_side_shape)
 
         if self.cfg.power_images != 1.0:
             proj *= self.cfg.power_images
 
         # Generate CTF from CTF paramaters
-        defocusU = torch.from_numpy(np.array(particle["rlnDefocusU"] / 1e4, ndmin=2)).float()
-        defocusV = torch.from_numpy(np.array(particle["rlnDefocusV"] / 1e4, ndmin=2)).float()
-        angleAstigmatism = torch.from_numpy(np.radians(np.array(particle["rlnDefocusAngle"], ndmin=2))).float()
+        defocusU = torch.from_numpy(np.array(item_row["rlnDefocusU"] / 1e4, ndmin=2)).float()
+        defocusV = torch.from_numpy(np.array(item_row["rlnDefocusV"] / 1e4, ndmin=2)).float()
+        angleAstigmatism = torch.from_numpy(np.radians(np.array(item_row["rlnDefocusAngle"], ndmin=2))).float()
 
         # Read "GT" orientations
-        if self.cfg.no_rot:
+        if self.cfg.ignore_rots:
             rotmat = torch.eye(3).float()
         else:
             # yapf: disable
             rotmat = torch.from_numpy(euler_angles2matrix(
-                np.radians(-particle["rlnAngleRot"]),
-                np.radians(particle["rlnAngleTilt"]) * (-1 if self.cfg.invert_hand else 1),
-                np.radians(-particle["rlnAnglePsi"]))
+                np.radians(-item_row["rlnAngleRot"]),
+                # np.radians(particle["rlnAngleTilt"]) * (-1 if self.cfg.invert_hand else 1),
+                np.radians(-item_row["rlnAngleTilt"]),
+                np.radians(-item_row["rlnAnglePsi"]))
             ).float()
             # yapf: enable
 
         # Read "GT" shifts
-        if self.cfg.no_trans:
+        if self.cfg.ignore_trans:
             shiftX = torch.tensor([0.])
             shiftY = torch.tensor([0.])
         else:
-            # support old star file
+            # support early starfile formats
             # Particle translations used to be in pixels (rlnOriginX and rlnOriginY) but this changed to Angstroms
             # (rlnOriginXAngstrom and rlnOriginYAngstrom) in relion 3.1.
             # https://relion.readthedocs.io/en/release-3.1/Reference/Conventions.html
-            if "rlnOriginXAngst" in particle:
-                shiftX = torch.from_numpy(np.array(particle["rlnOriginXAngst"], dtype=np.float32))
-                shiftY = torch.from_numpy(np.array(particle["rlnOriginYAngst"], dtype=np.float32))
+            if "rlnOriginXAngst" in item_row:
+                shiftX = torch.from_numpy(np.array(item_row["rlnOriginXAngst"], dtype=np.float32))
+                shiftY = torch.from_numpy(np.array(item_row["rlnOriginYAngst"], dtype=np.float32))
             else:
-                shiftX = torch.from_numpy(np.array(particle["rlnOriginX"] * self._apix, dtype=np.float32))
-                shiftY = torch.from_numpy(np.array(particle["rlnOriginY"] * self._apix, dtype=np.float32))
+                shiftX = torch.from_numpy(np.array(item_row["rlnOriginX"] * self.apix, dtype=np.float32))
+                shiftY = torch.from_numpy(np.array(item_row["rlnOriginY"] * self.apix, dtype=np.float32))
 
         fproj = primal_to_fourier_2d(proj)
 
@@ -188,10 +202,10 @@ class StarfileDataSet(Dataset):
             "angleAstigmatism": angleAstigmatism,
             "idx": torch.tensor(idx, dtype=torch.long),
             "fproj": fproj,
-            "imgname_raw": imgname_raw
+            "imgname_raw": img_name_raw
         }
 
-        if "rlnClassNumber" in particle:
-            in_dict["class_id"] = particle["rlnClassNumber"]
+        if "rlnClassNumber" in item_row:
+            in_dict["class_id"] = item_row["rlnClassNumber"]
 
         return in_dict

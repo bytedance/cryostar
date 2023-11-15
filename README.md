@@ -12,8 +12,8 @@ The detailed user guide can be found at [here](https://byte-research.gitbook.io/
 
 ## Installation
 
-- Create a conda enviroment: `conda create -n cryostar`
-- Install the package: `pip install -e .`
+- Create a conda enviroment: `conda create -n cryostar python=3.9 -y`
+- Install the package: `pip install .`
 
 ## Quick start
 
@@ -32,7 +32,7 @@ In this step, we generate an ensemble of coarse-grained protein structures from 
 
 ```shell
 cd projects/star
-python train_atom.py atom_configs/10073.py
+python train_atom.py atom_configs/1ake.py
 ```
 
 The outputs will be stored in the `work_dirs/atom_xxxxx` directory, and we perform evaluations every 12,000 steps. Within this directory, you'll observe sub-directories with the name `epoch-number_step-number`. We choose the most recent directory as the final results.
@@ -58,11 +58,11 @@ atom_xxxxx/
 
 #### S2: Training the density generator
 
-In step 1, the atom generator assigns a latent code $z$ to each particle image. In this step, we will drop the encoder and directly use the latent code as a representation of a partcile. You can execute the subsequent command to initiate the training of a density generator.
+In step 1, the atom generator assigns a latent code `z` to each particle image. In this step, we will drop the encoder and directly use the latent code as a representation of a partcile. You can execute the subsequent command to initiate the training of a density generator.
 
 ```shell
 # change the xxx/z.npy path to the output of the above command
-python train_density.py density_configs/10073.py --cfg-options model.given_z=xxx/z.npy
+python train_density.py density_configs/1ake.py --cfg-options extra_input_data_attr.given_z=xxx/z.npy
 ```
 
 Results will be saved to `work_dirs/density_xxxxx`, and each subdirectory has the name `epoch-number_step-number`. We choose the most recent directory as the final results.

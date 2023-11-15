@@ -1,16 +1,26 @@
-starfile_apix = 1.2156
-
-data = dict(
+dataset_attr = dict(
     dataset_dir="empiar_link/10059/data",
-    starfile_name="J3_particles_exported.star",
-    starfile_apix=starfile_apix,
-    # ref structure
-    ref_path="empiar_link/10059/res/7rqw_dock.pdb",
+    starfile_path="empiar_link/10059/data/J3_particles_exported.star",
+    apix=1.2156,
     side_shape=192,
-    voxel_size=starfile_apix,
-    lp_bandwidth=10,  # low-pass bandwidth
-    # control if gt images will be masked, almost always None
+    ref_pdb_path="empiar_link/10059/res/7rqw_dock.pdb",
+)
+
+extra_input_data_attr = dict(
+    nma_path="",
+    use_domain=False,
+    domain_path=None,
+    ckpt_path=None
+)
+
+data_process = dict(
+    down_side_shape=dataset_attr["side_shape"],
     mask_rad=1.0,
+    # optional
+    low_pass_bandwidth=10,
+)
+
+data_loader = dict(
     train_batch_per_gpu=32,
     val_batch_per_gpu=64,
     workers_per_gpu=4,
@@ -20,19 +30,6 @@ seed = 1
 exp_name = ""
 eval_mode = False
 do_ref_init = True
-use_domain = False
-
-mask = dict(
-    # control the mask during training
-    mask_rad=0.9375)
-
-# ctf = dict(
-#     size=data["side_shape"],
-#     resolution=data["voxel_size"],  # equal to voxel_size
-#     kV=300,
-#     cs=2.0,
-#     amplitudeContrast=0.1,
-# )
 
 gmm = dict(tunable=False)
 
@@ -53,6 +50,7 @@ loss = dict(
     inter_chain_cutoff=0.,
     intra_chain_res_bound=None,
     clash_min_cutoff=4.0,
+    mask_rad_for_image_loss=0.9375,
     gmm_cryoem_weight=1.0,
     connect_weight=1.0,
     sse_weight=0.0,

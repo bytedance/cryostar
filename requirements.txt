@@ -1,27 +1,40 @@
-# code
+# visualize
+jupyterlab
+matplotlib
+seaborn
+nglview
+# ipywidgets>=7.6.0,<8
+# training
 einops
 torch
-numpy
+torchvision
+torchinfo
+lightning
+mmengine
+# tools
+healpy
 tqdm
 tabulate
 tensorboard
-matplotlib
-# ipywidgets>=7.6.0,<8
-mrcfile
-biopython
-jupyterlab
-pandas
-starfile
 scipy
-biotite
-fastpdb
-lazy_loader
+scikit-learn
+numpy
+numba
+pandas
+umap-learn[plot]
+mmcv-lite
+opencv-python-headless
 dm-tree
+lazy_loader
+# protein
+biotite
+biopython
 gemmi
-lightning
-mmengine
+starfile
+mrcfile
 # formatting
 nbqa
 autoflake
 isort
 yapf
+pre-commit

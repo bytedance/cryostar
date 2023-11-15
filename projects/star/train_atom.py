@@ -21,7 +21,6 @@ from lightning.pytorch.strategies import DDPStrategy
 
 from mmengine import mkdir_or_exist
 
-# pose estimation
 from cryostar.utils.transforms import SpatialGridTranslate
 # other
 from cryostar.utils.dataio import StarfileDataSet, StarfileDatasetConfig, Mask
@@ -33,8 +32,8 @@ from cryostar.models.gmm import EMAN2Grid, batch_projection, Gaussian
 from cryostar.utils.fft_utils import primal_to_fourier_2d, fourier_to_primal_2d
 from cryostar.utils.polymer import Polymer, NT_ATOMS, AA_ATOMS
 from cryostar.utils.dist_loss import (find_quaint_cutoff_pairs, find_range_cutoff_pairs, find_continuous_pairs,
-                                       calc_dist_by_pair_indices, remove_duplicate_pairs, filter_same_chain_pairs,
-                                       DistLoss)
+                                      calc_dist_by_pair_indices, remove_duplicate_pairs, filter_same_chain_pairs,
+                                      DistLoss)
 
 from miscs import save_tensor_image, warmup, calc_pair_dist_loss, calc_clash_loss, \
     merge_step_outputs, squeeze_dict_outputs_1st_dim, get_1st_unique_indices, filter_outputs_by_indices, \
@@ -106,8 +105,8 @@ class CryoEMTask(pl.LightningModule):
         self.cfg = cfg
 
         # Define GMM
-        meta = Polymer.from_pdb(cfg.data.ref_path)
-        log_to_current(f"Load reference structure from {cfg.data.ref_path}")
+        meta = Polymer.from_pdb(cfg.dataset_attr.ref_pdb_path)
+        log_to_current(f"Load reference structure from {cfg.dataset_attr.ref_pdb_path}")
 
         # for save
         self.template_pdb = meta.to_atom_arr()
@@ -120,8 +119,6 @@ class CryoEMTask(pl.LightningModule):
         ref_centers = torch.from_numpy(meta.coord).float()
         ref_amps = torch.from_numpy(meta.num_electron).float()
         ref_sigmas = torch.ones_like(ref_amps)
-        # control by resolution
-        # ref_sigmas.fill_(cfg.data.resolution / (math.pi * math.sqrt(2)))
         ref_sigmas.fill_(2.)
         log_to_current(f"1st GMM blob amplitude {ref_amps[0].item()}, sigma {ref_sigmas[0].item()}")
 
@@ -141,23 +138,24 @@ class CryoEMTask(pl.LightningModule):
             self.register_buffer("gmm_amps", ref_amps)
 
         nma_modes = None
-        if hasattr(self.cfg.data, "nma_path"):
-            if self.cfg.data.nma_path not in ["", None]:
-                nma_modes = torch.tensor(np.load(self.cfg.data.nma_path), dtype=torch.float32)
-                log_to_current(f"Load NMA coefficients from {self.cfg.data.nma_path}, whose shape is {nma_modes.shape}")
+        if (hasattr(self.cfg.extra_input_data_attr, "nma_path") and
+                self.cfg.extra_input_data_attr.nma_path not in ["", None]):
+            nma_modes = torch.tensor(np.load(self.cfg.extra_input_data_attr.nma_path), dtype=torch.float32)
+            log_to_current(f"Load NMA coefficients from {self.cfg.extra_input_data_attr.nma_path}, "
+                           f"whose shape is {nma_modes.shape}")
 
         # model
         if cfg.model.input_space == "fourier":
-            in_dim = 2 * cfg.data.side_shape**2
+            in_dim = 2 * cfg.data_process.down_side_shape ** 2
         elif cfg.model.input_space == "real":
-            in_dim = cfg.data.side_shape**2
+            in_dim = cfg.data_process.down_side_shape ** 2
         else:
             raise NotImplementedError
         self.model = VAE(in_dim=in_dim,
                          out_dim=num_pts * 3 if nma_modes is None else 6 + nma_modes.shape[1],
                          num_particles=len(dataset),
                          **cfg.model.model_cfg)
-        log_to_current('Model summary:\n' + str(summary(self.model, input_size=[(1, in_dim), (1, )], verbose=0)))
+        log_to_current('Model summary:\n' + str(summary(self.model, input_size=[(1, in_dim), (1,)], verbose=0)))
         if nma_modes is None:
             self.deformer = E3Deformer()
         else:
@@ -167,9 +165,9 @@ class CryoEMTask(pl.LightningModule):
         # dist loss
         connect_pairs = find_continuous_pairs(meta.chain_id, meta.res_id, meta.atom_name)
 
-        if cfg.use_domain:
+        if cfg.extra_input_data_attr.use_domain:
             log_to_current("use domain instead of chain!")
-            domain_id = np.load(cfg.data.domain_path)
+            domain_id = np.load(cfg.extra_input_data_attr.domain_path)
             cutoff_pairs = find_quaint_cutoff_pairs(meta.coord, domain_id, meta.res_id, cfg.loss.intra_chain_cutoff,
                                                     cfg.loss.inter_chain_cutoff, cfg.loss.intra_chain_res_bound)
         else:
@@ -241,18 +239,19 @@ class CryoEMTask(pl.LightningModule):
             log_to_current("clash_pairs is empty")
 
         # low-pass filtering
-        if hasattr(cfg.data, "lp_bandwidth"):
-            log_to_current(f"Use low-pass filtering w/ {cfg.data.lp_bandwidth} A")
-            lp_mask2d = low_pass_mask2d(cfg.data.side_shape, cfg.data.voxel_size, cfg.data.lp_bandwidth)
+        if hasattr(cfg.data_process, "low_pass_bandwidth"):
+            log_to_current(f"Use low-pass filtering w/ {cfg.data_process.low_pass_bandwidth} A")
+            lp_mask2d = low_pass_mask2d(cfg.data_process.down_side_shape, cfg.data_process.down_apix,
+                                        cfg.data_process.low_pass_bandwidth)
             self.register_buffer("lp_mask2d", torch.from_numpy(lp_mask2d).float())
         else:
             self.lp_mask2d = None
 
         #
-        self.mask = Mask(cfg.data.side_shape, rad=cfg.mask.mask_rad)
+        self.mask = Mask(cfg.data_process.down_side_shape, rad=cfg.loss.mask_rad_for_image_loss)
 
         # for projection
-        grid = EMAN2Grid(side_shape=cfg.data.side_shape, voxel_size=cfg.data.voxel_size)
+        grid = EMAN2Grid(side_shape=cfg.data_process.down_side_shape, voxel_size=cfg.data_process.down_apix)
         self.grid = grid
 
         ctf_params = infer_ctf_params_from_config(cfg)
@@ -260,17 +259,17 @@ class CryoEMTask(pl.LightningModule):
         log_to_current(ctf_params)
 
         # translate image helper
-        self.translator = SpatialGridTranslate(D=cfg.data.side_shape, device=self.device)
+        self.translator = SpatialGridTranslate(D=cfg.data_process.down_side_shape, device=self.device)
 
-        self.apix = self.cfg.data.voxel_size
+        self.apix = self.cfg.data_process.down_apix
         # cache
         self.validation_step_outputs = []
         self.stored_metrics = {}
         self.history_saved_dirs = []
 
-        if getattr(self.cfg, "ckpt_path", None) is not None:
-            log_to_current(f"load checkpoint from {self.cfg.ckpt_path}")
-            self._load_ckpt(self.cfg.ckpt_path)
+        if getattr(self.cfg.extra_input_data_attr, "ckpt_path", None) is not None:
+            log_to_current(f"load checkpoint from {self.cfg.extra_input_data_attr.ckpt_path}")
+            self._load_ckpt(self.cfg.extra_input_data_attr.ckpt_path)
 
     def _save_ckpt(self, ckpt_path):
         torch.save(
@@ -524,21 +523,6 @@ class CryoEMTask(pl.LightningModule):
 
             save_dir = self._get_save_dir()
 
-            # save current bonds for checking
-            # if hasattr(self, "dist_loss_fn"):
-            #     with torch.no_grad():
-            #         weights = self.dist_loss_fn.get_weights().cpu().numpy()
-            #         all_pairs = self.dist_loss_fn.pair_ids.cpu().numpy()
-            #
-            #     log_to_current(f"edge weight mid {np.median(weights):.4f} mean {np.mean(weights):.4f}")
-            #
-            #     if np.sum(weights > 0.1):
-            #         save_bonds_to_pdb(osp.join(save_dir, "w0-1.pdb"), self.template_pdb, all_pairs[weights > 0.1])
-            #     if np.sum(weights > 0.3):
-            #         save_bonds_to_pdb(osp.join(save_dir, "w0-3.pdb"), self.template_pdb, all_pairs[weights > 0.3])
-            #     if np.sum(weights > 0.6):
-            #         save_bonds_to_pdb(osp.join(save_dir, "w0-6.pdb"), self.template_pdb, all_pairs[weights > 0.6])
-
             # --------
             # dealing with all z
             indices = get_1st_unique_indices(all_outputs["idx"])
@@ -648,31 +632,50 @@ def train():
 
     dataset = StarfileDataSet(
         StarfileDatasetConfig(
-            path_to_file=cfg.data.dataset_dir,  #
-            side_len=cfg.data.side_shape,
-            file=cfg.data.starfile_name,
-            mask_rad=cfg.data.mask_rad,
+            dataset_dir=cfg.dataset_attr.dataset_dir,
+            starfile_path=cfg.dataset_attr.starfile_path,
+            apix=cfg.dataset_attr.apix,
+            side_shape=cfg.dataset_attr.side_shape,
+            down_side_shape=cfg.data_process.down_side_shape,
+            mask_rad=cfg.data_process.mask_rad,
             power_images=1.0,
-            no_trans=False,
-            no_rot=False,
-            invert_hand=True))
+            ignore_rots=False,
+            ignore_trans=False, ))
 
-    dataset.apix = cfg.data.starfile_apix
-    log_to_current(f"Set dataset apix to {dataset._apix}")
-    log_to_current(f"Load dataset from {cfg.data.dataset_dir}, power scaled by {dataset.cfg.power_images}")
+    #
+    if cfg.dataset_attr.apix is None:
+        cfg.dataset_attr.apix = dataset.apix
+    if cfg.dataset_attr.side_shape is None:
+        cfg.dataset_attr.side_shape = dataset.side_shape
+    if cfg.data_process.down_side_shape is None:
+        if dataset.side_shape > 256:
+            cfg.data_process.down_side_shape = 128
+            dataset.down_side_shape = 128
+        else:
+            cfg.data_process.down_side_shape = dataset.down_side_shape
+
+    cfg.data_process["down_apix"] = dataset.apix
+    if dataset.down_side_shape != dataset.side_shape:
+        cfg.data_process.down_apix = dataset.side_shape * dataset.apix / dataset.down_side_shape
+
+    rank_zero_only(cfg.dump)(osp.join(cfg.work_dir, "config.py"))
+
+    log_to_current(f"Load dataset from {dataset.cfg.dataset_dir}, power scaled by {dataset.cfg.power_images}")
     log_to_current(f"Total {len(dataset)} samples")
+    log_to_current(f"The dataset side_shape: {dataset.side_shape}, apix: {dataset.apix}")
+    log_to_current(f"Set down-sample side_shape {dataset.down_side_shape} with apix {cfg.data_process.down_apix}")
 
     train_loader = DataLoader(dataset,
-                              batch_size=cfg.data.train_batch_per_gpu,
+                              batch_size=cfg.data_loader.train_batch_per_gpu,
                               shuffle=True,
                               drop_last=True,
-                              num_workers=cfg.data.workers_per_gpu)
+                              num_workers=cfg.data_loader.workers_per_gpu)
 
     test_loader = DataLoader(dataset,
-                             batch_size=cfg.data.val_batch_per_gpu,
+                             batch_size=cfg.data_loader.val_batch_per_gpu,
                              shuffle=False,
                              drop_last=False,
-                             num_workers=cfg.data.workers_per_gpu)
+                             num_workers=cfg.data_loader.workers_per_gpu)
 
     em_task = CryoEMTask(cfg, dataset)
 
