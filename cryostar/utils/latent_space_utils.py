@@ -1,3 +1,11 @@
+# This file contains code modified from cryodrgn/analysis.py 
+# available at https://github.com/ml-struct-bio/cryodrgn/blob/main/cryodrgn/analysis.py
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
 import warnings
 from typing import Optional, Tuple
 
