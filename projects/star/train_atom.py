@@ -25,8 +25,9 @@ from cryostar.utils.transforms import SpatialGridTranslate
 # other
 from cryostar.utils.dataio import StarfileDataSet, StarfileDatasetConfig, Mask
 from cryostar.utils.ctf_utils import CTFRelion
+from cryostar.utils.losses import calc_cor_loss, calc_kl_loss
 from cryostar.utils.misc import log_to_current, \
-    pl_init_exp, pretty_dict, set_seed, calc_cor_loss, calc_kl_loss
+    pl_init_exp, pretty_dict, set_seed, warmup
 from cryostar.utils.pdb_tools import bt_save_pdb
 from cryostar.gmm.gmm import EMAN2Grid, batch_projection, Gaussian
 from cryostar.gmm.deformer import E3Deformer, NMADeformer
@@ -36,10 +37,11 @@ from cryostar.utils.dist_loss import (find_quaint_cutoff_pairs, find_range_cutof
                                       calc_dist_by_pair_indices, remove_duplicate_pairs, filter_same_chain_pairs,
                                       DistLoss)
 from cryostar.utils.latent_space_utils import get_nearest_point, cluster_kmeans, run_pca, get_pc_traj, run_umap
+from cryostar.utils.vis_utils import plot_z_dist, save_tensor_image
+from cryostar.utils.pl_utils import merge_step_outputs, squeeze_dict_outputs_1st_dim, \
+    filter_outputs_by_indices, get_1st_unique_indices
 
-from miscs import save_tensor_image, warmup, calc_pair_dist_loss, calc_clash_loss, \
-    merge_step_outputs, squeeze_dict_outputs_1st_dim, get_1st_unique_indices, filter_outputs_by_indices, \
-    plot_z_dist, low_pass_mask2d, VAE, infer_ctf_params_from_config
+from miscs import calc_pair_dist_loss, calc_clash_loss, low_pass_mask2d, VAE, infer_ctf_params_from_config
 
 # avoid num_workers set as cpu_count warning
 warnings.simplefilter("ignore", PossibleUserWarning)
