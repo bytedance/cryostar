@@ -28,7 +28,7 @@ from cryostar.utils.ctf_utils import CTFRelion
 from cryostar.utils.misc import log_to_current, \
     pl_init_exp, pretty_dict, set_seed, calc_cor_loss, calc_kl_loss
 from cryostar.utils.pdb_tools import bt_save_pdb
-from cryostar.models.gmm import EMAN2Grid, batch_projection, Gaussian
+from cryostar.gmm.gmm import EMAN2Grid, batch_projection, Gaussian
 from cryostar.utils.fft_utils import primal_to_fourier_2d, fourier_to_primal_2d
 from cryostar.utils.polymer import Polymer, NT_ATOMS, AA_ATOMS
 from cryostar.utils.dist_loss import (find_quaint_cutoff_pairs, find_range_cutoff_pairs, find_continuous_pairs,

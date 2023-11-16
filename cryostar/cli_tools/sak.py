@@ -10,7 +10,7 @@ import torch
 from cryostar.utils.pdb_tools import bt_read_pdb, bt_save_pdb
 from cryostar.utils.mrc_tools import save_mrc
 from cryostar.utils.polymer import Polymer
-from cryostar.models.gmm import EMAN2Grid, Gaussian, canonical_density
+from cryostar.gmm.gmm import EMAN2Grid, Gaussian, canonical_density
 
 
 def _check_valid_file_path(file_path):
