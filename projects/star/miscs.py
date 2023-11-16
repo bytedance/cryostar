@@ -1,18 +1,14 @@
+from functools import lru_cache
 from pathlib import Path
 
-import starfile
 import cv2
+import einops
 import numpy as np
-from scipy.spatial import distance
-import biotite.structure as struc
+import seaborn as sns
 from PIL import Image
+from matplotlib import pyplot as plt
 from torchvision.transforms import ToPILImage
 from torchvision.utils import make_grid
-import seaborn as sns
-from matplotlib import pyplot as plt
-
-from functools import lru_cache
-import einops
 
 try:
     import cupy as cp  # type: ignore
@@ -25,17 +21,12 @@ from torch import nn
 import torch.nn.functional as F
 
 from cryostar.common.residue_constants import ca_ca
-from cryostar.utils.rotation_conversion import matrix_to_euler_angles, axis_angle_to_matrix
-from cryostar.utils.pdb_tools import bt_read_pdb, bt_save_pdb
-from cryostar.utils.polymer import get_num_electrons
-from cryostar.utils.misc import log_to_current, ASSERT_SHAPE
-from cryostar.utils.latent_space_utils import run_umap, run_pca, get_pc_traj, get_nearest_point, cluster_kmeans # noqa
+from cryostar.utils.misc import log_to_current
 from cryostar.utils.ml_modules import VAEEncoder, Decoder, reparameterize
 from cryostar.utils.ctf import parse_ctf_star
 
 from lightning.pytorch.utilities import rank_zero_only
 from typing import Union
-from abc import abstractmethod, ABC
 
 
 CA_CA = round(ca_ca, 2)
@@ -54,34 +45,6 @@ def infer_ctf_params_from_config(cfg):
         "amplitudeContrast": ctf_params[7]
     }
     return ctf_params
-
-
-def annealer(period, sleep=0, lower=0.0, upper=1.0):
-    """
-        return a function f: x->y which looks like:
-        ```
-               /----|   /----|
-              /     |  /     |
-             /      | /      |
-        ----/       |/       |
-        ```
-        1. sleep
-        2. increase for half period
-        3. sleep for half period
-    """
-    half_period = period // 2
-    value_range = (upper - lower)
-
-    def run(cur_step):
-        if cur_step < sleep:
-            return lower
-        in_period_step = (cur_step - sleep) % period
-        if in_period_step < half_period:
-            return in_period_step / half_period * value_range
-        else:
-            return upper
-
-    return run
 
 
 def warmup(warmup_step, lower=0.0, upper=1.0):
@@ -236,15 +199,6 @@ def plot_z_dist(z, extra_cluster=None, save_path=None):
         raise ValueError(f"input z with shape {z.shape}")
 
 
-def get_mse(ref, obj):
-    return np.mean(np.power(ref - obj, 2))
-
-
-def get_nmse(ref, obj):
-    # return get_mse(ref, obj) / get_mse(ref, np.mean(ref))
-    return get_mse(ref, obj) / get_mse(ref, 0)
-
-
 def low_pass_mask3d(shape, apix=1., bandwidth=2):
     freq = np.fft.fftshift(np.fft.fftfreq(shape, apix))
     freq = freq**2
@@ -265,229 +219,6 @@ def low_pass_mask2d(shape, apix=1., bandwidth=2):
     return mask
 
 
-# --------
-# loss utilities
-def get_atom_center(atom_arr):
-    return np.mean(atom_arr.coord, axis=0)
-
-
-def build_gmm(atom_arr, level="ca"):
-    level = level.lower()
-    assert level in ("ca", "ca+r", "bb+r", "all-atom")
-    if level == "ca":
-        nums = np.sum(atom_arr.atom_name == "CA")
-    elif level == "ca+r":
-        nums = np.sum(atom_arr.atom_name == "CA") * 2
-    elif level == "bb+r":
-        nums = np.sum(atom_arr.atom_name == "CA") * 5  # N, CA, C, O, R-group
-    else:
-        nums = len(atom_arr)
-
-    meta = {
-        "chain_id": np.empty(nums, dtype="U4"),
-        "res_id": np.empty(nums, dtype=int),
-        "coord": np.empty((nums, 3), dtype=float),
-        "num_electron": np.empty(nums, dtype=int),
-        "atom_name": np.empty(nums, dtype="U6"),
-        "res_name": np.empty(nums, dtype="U3"),
-        "element": np.empty(nums, dtype="U2")
-    }
-
-    def _set_meta(pos, *vals):
-        meta["chain_id"][pos] = vals[0]
-        meta["res_id"][pos] = vals[1]
-        meta["coord"][pos] = vals[2]
-        meta["num_electron"][pos] = vals[3]
-        meta["atom_name"][pos] = vals[4]
-        meta["res_name"][pos] = vals[5]
-        meta["element"][pos] = vals[6]
-        return
-
-    pos = 0
-    # loop chains
-    for chain in struc.chain_iter(atom_arr):
-        chain_id = chain.chain_id[0]
-        # loop residues
-        for res in struc.residue_iter(chain):
-            res_id = res.res_id[0]
-            res_name = res.res_name[0]
-
-            if level == "ca":
-                _set_meta(pos, chain_id, res_id, res[res.atom_name == "CA"].coord, get_num_electrons(res), "CA",
-                          res_name, "C")
-                pos += 1
-            else:
-                main_chain = res[np.isin(res.atom_name, ['N', 'CA', 'C', 'O'])]
-                side_chain = res[~np.isin(res.atom_name, ['N', 'CA', 'C', 'O'])]
-
-                if level == "ca+r":
-                    # CA location as main group
-                    _set_meta(pos, chain_id, res_id, res[res.atom_name == "CA"].coord, get_num_electrons(main_chain),
-                              "CA", res_name, "C")
-                    pos += 1
-                    # R group
-                    _set_meta(pos, chain_id, res_id, get_atom_center(side_chain), get_num_electrons(side_chain), "R",
-                              res_name, "C")
-                    pos += 1
-
-                elif level == "bb+r":
-                    # N, CA, C, O
-                    for atom_name in main_chain.atom_name:
-                        tmp_arr = res[res.atom_name == atom_name]
-                        _set_meta(pos, chain_id, res_id, tmp_arr.coord, get_num_electrons(tmp_arr), atom_name, res_name,
-                                  tmp_arr.element[0])
-                        pos += 1
-                    # R group
-                    _set_meta(pos, chain_id, res_id, get_atom_center(side_chain), get_num_electrons(side_chain), "R",
-                              res_name, "C")
-                    pos += 1
-
-                else:
-                    for atom_name in res.atom_name:
-                        tmp_arr = res[res.atom_name == atom_name]
-                        _set_meta(pos, chain_id, res_id, tmp_arr.coord, get_num_electrons(tmp_arr), atom_name, res_name,
-                                  tmp_arr.element[0])
-                        pos += 1
-
-    assert pos == nums
-    return meta
-
-
-def build_pgmm(atom_arr):
-    nt_arr = atom_arr[struc.filter_nucleotides(atom_arr)]
-    aa_arr = atom_arr[struc.filter_amino_acids(atom_arr)]
-
-    nums = struc.get_residue_count(aa_arr)
-    if len(nt_arr) > 0:
-        nums += struc.get_residue_count(nt_arr)
-
-    meta = {
-        "chain_id": np.empty(nums, dtype="U4"),
-        "res_id": np.empty(nums, dtype=int),
-        "coord": np.empty((nums, 3), dtype=float),
-        "num_electron": np.empty(nums, dtype=int),
-        "atom_name": np.empty(nums, dtype="U6"),
-        "res_name": np.empty(nums, dtype="U3"),
-        "element": np.empty(nums, dtype="U2")
-    }
-
-    def _set_meta(pos, *vals):
-        meta["chain_id"][pos] = vals[0]
-        meta["res_id"][pos] = vals[1]
-        meta["coord"][pos] = vals[2]
-        meta["num_electron"][pos] = vals[3]
-        meta["atom_name"][pos] = vals[4]
-        meta["res_name"][pos] = vals[5]
-        meta["element"][pos] = vals[6]
-        return
-
-    def _update(tmp_arr, kind="aa"):
-        nonlocal pos
-        for chain in struc.chain_iter(tmp_arr):
-            chain_id = chain.chain_id[0]
-            for res in struc.residue_iter(chain):
-                res_id = res.res_id[0]
-                res_name = res.res_name[0]
-
-                if kind == "aa":
-                    tmp_res = res[struc.filter_peptide_backbone(res)]
-                    _set_meta(pos, chain_id, res_id, tmp_res[tmp_res.atom_name == "CA"].coord, get_num_electrons(res),
-                              "CA", res_name, "C")
-                elif kind == "nt":
-                    if "P" in res.atom_name:
-                        _set_meta(pos, chain_id, res_id, res[res.atom_name == "P"].coord, get_num_electrons(res), "P",
-                                  res_name, "P")
-                    else:
-                        print("No P in current NT residue, use C1 instead")
-                        _set_meta(pos, chain_id, res_id, res[res.atom_name == "C1'"].coord, get_num_electrons(res),
-                                  "C1'", res_name, "C")
-                else:
-                    raise NotImplemented
-                pos += 1
-
-    pos = 0
-
-    _update(aa_arr, kind="aa")
-    if len(nt_arr) > 0:
-        _update(nt_arr, kind="nt")
-
-    assert pos == nums
-    return meta
-
-
-def template_pdb_from_meta(meta):
-    nums = len(meta["coord"])
-    atom_arr = struc.AtomArray(nums)
-    atom_arr.coord = meta["coord"]
-
-    for k in meta.keys():
-        if k != "coord":
-            atom_arr.set_annotation(k, meta[k])
-
-    atom_arr.atom_name[atom_arr.atom_name == "R"] = "CB"
-    return atom_arr
-
-
-def valid_dist_pair_from_meta(coord_arr,
-                              chain_id_arr,
-                              res_id_arr=None,
-                              intra_chain_cutoff=15.,
-                              inter_chain_cutoff=15.,
-                              intra_chain_res_bound=None):
-    sel_indices = []
-    dist_map = distance.cdist(coord_arr, coord_arr, metric='euclidean')
-    # 1. intra chain
-    sel_mask = dist_map <= intra_chain_cutoff
-    np.fill_diagonal(sel_mask, False)
-    # sel_mask = np.triu(sel_mask, k=1)
-    # get indices of valid pairs
-    indices_in_pdb = np.nonzero(sel_mask)
-    indices_in_pdb = np.column_stack((indices_in_pdb[0], indices_in_pdb[1]))
-    indices_in_pdb = indices_in_pdb[chain_id_arr[indices_in_pdb[:, 0]] == chain_id_arr[indices_in_pdb[:, 1]]]
-    # filter by res_id
-    if intra_chain_res_bound is not None:
-        assert res_id_arr is not None
-        res_ids = res_id_arr[indices_in_pdb]
-        res_id_dist = np.abs(np.diff(res_ids, axis=1)).flatten()
-        indices_in_pdb = indices_in_pdb[res_id_dist <= intra_chain_res_bound]
-
-    sel_indices.append(indices_in_pdb)
-
-    # 2. inter chain
-    if inter_chain_cutoff is not None:
-        sel_mask = dist_map <= inter_chain_cutoff
-        np.fill_diagonal(sel_mask, False)
-        # sel_mask = np.triu(sel_mask, k=1)
-        indices_in_pdb = np.nonzero(sel_mask)
-        indices_in_pdb = np.column_stack((indices_in_pdb[0], indices_in_pdb[1]))
-        indices_in_pdb = indices_in_pdb[chain_id_arr[indices_in_pdb[:, 0]] != chain_id_arr[indices_in_pdb[:, 1]]]
-        sel_indices.append(indices_in_pdb)
-
-    sel_indices = np.vstack(sel_indices)
-
-    sel_indices = torch.from_numpy(sel_indices).long()
-
-    centers = torch.from_numpy(coord_arr).float()
-    tmp = centers[sel_indices]  # num_pair, 2, 3
-    target_dist = LA.vector_norm(torch.diff(tmp, dim=-2), axis=-1).squeeze(-1)  # num_pair
-    return sel_indices, target_dist
-
-
-def possible_clash_pair_from_meta(coord_arr, chain_id_arr, max_cutoff=10., min_cutoff=4.):
-    """
-    Input:
-        min_cutoff: important, set to a meaningful clash threshold.
-        max_cutoff: not important, used to filter out residues too far away to avoid computation cost.
-    """
-    dist_map = distance.cdist(coord_arr, coord_arr, metric='euclidean')
-    sel_mask = (dist_map <= max_cutoff) & (dist_map >= min_cutoff)
-    indices_in_pdb = np.nonzero(sel_mask)
-    indices_in_pdb = np.column_stack((indices_in_pdb[0], indices_in_pdb[1]))
-    indices_in_pdb = indices_in_pdb[chain_id_arr[indices_in_pdb[:, 0]] != chain_id_arr[indices_in_pdb[:, 1]]]
-    indices_in_pdb = torch.from_numpy(indices_in_pdb).long()
-    return indices_in_pdb
-
-
 def calc_clash_loss(pred_struc, pair_index, clash_cutoff=4.0):
     pred_dist = pred_struc[:, pair_index]  # bsz, num_pair, 2, 3
     pred_dist = LA.vector_norm(torch.diff(pred_dist, dim=-2), axis=-1).squeeze(-1)  # bsz, num_pair
@@ -498,56 +229,6 @@ def calc_clash_loss(pred_struc, pair_index, clash_cutoff=4.0):
         possible_clash_loss = (clash_cutoff - possible_clash_dist)**2
         avg_loss = possible_clash_loss.mean()
     return avg_loss
-
-
-def valid_dist_pair(atom_arr, intra_chain_cutoff=15., inter_chain_cutoff=15., intra_chain_res_bound=None):
-    return valid_dist_pair_from_meta(atom_arr.coord,
-                                     atom_arr.chain_id,
-                                     atom_arr.res_id,
-                                     intra_chain_cutoff=intra_chain_cutoff,
-                                     inter_chain_cutoff=inter_chain_cutoff,
-                                     intra_chain_res_bound=intra_chain_res_bound)
-
-
-def pdb_ca_stat(pdb_path, tol=0.1):
-    # get first model
-    atom_arr = bt_read_pdb(pdb_path)[0]
-    # filter CA
-    atom_arr = atom_arr[struc.filter_peptide_backbone(atom_arr)]
-    atom_arr = atom_arr[atom_arr.atom_name == "CA"]
-    atom_coord = atom_arr.coord
-
-    # filter chain-level CA bonds
-    ca_idx_pair = {}
-    for chain_id in struc.get_chains(atom_arr):
-        chain_mask = atom_arr.chain_id == chain_id
-        ca_indices = np.nonzero(chain_mask)[0]
-        if len(ca_indices) < 2:
-            continue
-
-        # CA bond calc indices pair
-        pair_idx = np.column_stack((ca_indices[:-1], ca_indices[1:]))
-        dist_mat = atom_coord[pair_idx]
-        ca_dist = np.ravel(np.linalg.norm(np.diff(dist_mat, axis=1), axis=-1))
-        valid_ca_bond = np.logical_and(ca_dist >= (CA_CA - tol), ca_dist <= (CA_CA + tol))
-        valid_pair = pair_idx[valid_ca_bond]
-        ca_idx_pair[chain_id] = valid_pair
-    return atom_coord, np.vstack(list(ca_idx_pair.values()))
-
-
-def calc_bond_loss(pred_struc, pair_index=None, tol=None):
-    if pair_index is None:
-        ca_bonds = LA.vector_norm(pred_struc[:, :-1] - pred_struc[:, 1:], ord=2, dim=2)
-    else:
-        dist_mat = pred_struc[:, pair_index]  # bsz, num_ca_bond, 2, 3
-        ca_bonds = LA.vector_norm(torch.diff(dist_mat, dim=-2), axis=-1).squeeze(-1)  # bsz, num_ca_bond
-
-    bond_loss = torch.abs(ca_bonds - CA_CA)
-    if tol is not None:
-        bond_loss = torch.maximum(bond_loss - tol, bond_loss.new_tensor(0.))
-
-    bond_loss = torch.square(bond_loss).mean()  # averaged over bsz
-    return bond_loss
 
 
 @lru_cache(maxsize=None)
@@ -735,238 +416,6 @@ def get_1st_unique_indices(t):
     return first_idx
 
 
-def map_to_lie_algebra(v):
-    """Map a point in R^N to the tangent space at the identity, i.e.
-    to the Lie Algebra
-    Arg:
-        v = vector in R^N, (..., 3) in our case
-    Return:
-        R = v converted to Lie Algebra element, (3,3) in our case"""
-
-    # make sure this is a sample from R^3
-    assert v.size()[-1] == 3
-
-    R_x = v.new_tensor([[0.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0]])
-
-    R_y = v.new_tensor([[0.0, 0.0, 1.0], [0.0, 0.0, 0.0], [-1.0, 0.0, 0.0]])
-
-    R_z = v.new_tensor([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
-
-    R = (R_x * v[..., 0, None, None] + R_y * v[..., 1, None, None] + R_z * v[..., 2, None, None])
-    return R
-
-
-def expmap(v):
-    theta = v.norm(p=2, dim=-1, keepdim=True)
-    # normalize K
-    K = map_to_lie_algebra(v / theta)
-
-    I = torch.eye(3, device=v.device, dtype=v.dtype)  # noqa: E741
-    R = (I + torch.sin(theta)[..., None] * K + (1.0 - torch.cos(theta))[..., None] * (K @ K))
-    return R
-
-
-# --------
-# deal with cryosparc (.cs)
-# https://guide.cryosparc.com/setup-configuration-and-management/software-system-guides/
-# manipulating-.cs-files-created-by-cryosparc
-def cryosparc_to_relion(cs_path, src_star_path, dst_star_path, job_type="homo"):
-    if job_type == "abinit":
-        rot_key = "alignments_class_0/pose"
-        trans_key = "alignments_class_0/shift"
-        psize_key = "alignments_class_0/psize_A"
-    elif job_type == "homo" or job_type == "hetero":
-        rot_key = "alignments3D/pose"
-        trans_key = "alignments3D/shift"
-        psize_key = "alignments3D/psize_A"
-    else:
-        raise NotImplementedError(f"Support cryosparc results from abinit (ab-initio reconstruction), "
-                                  f"(homo) homogeneous refinement or (hetero) heterogeneous refinements")
-
-    data = np.load(str(cs_path))
-
-    df = starfile.read(src_star_path)
-
-    # view the first row
-    for i in range(len(data.dtype)):
-        print(i, data.dtype.names[i], data[0][i])
-
-    # parse rotations
-    print(f"Extracting rotations from {rot_key}")
-    rot = data[rot_key]
-    # .copy to avoid negative strides error
-    rot = torch.from_numpy(rot.copy())
-    rot = expmap(rot)
-    rot = rot.numpy()
-    print("Transposing rotation matrix")
-    rot = rot.transpose((0, 2, 1))
-    print(rot.shape)
-
-    #
-    # parse translations
-    print(f"Extracting translations from {trans_key}")
-    trans = data[trans_key]
-    if job_type == "hetero":
-        print("Scaling shifts by 2x")
-        trans *= 2
-    pixel_size = data[psize_key]
-    # translation in angstroms
-    trans *= pixel_size[..., None]
-    print(trans.shape)
-
-    # convert to relion
-    change_df = df["particles"] if "particles" in df else df
-    euler_angles_deg = np.degrees(matrix_to_euler_angles(torch.from_numpy(rot), 'ZYZ').float().numpy())
-    change_df["rlnAngleRot"] = -euler_angles_deg[:, 2]
-    change_df["rlnAngleTilt"] = -euler_angles_deg[:, 1]
-    change_df["rlnAnglePsi"] = -euler_angles_deg[:, 0]
-
-    change_df["rlnOriginXAngst"] = trans[:, 0]
-    change_df["rlnOriginYAngst"] = trans[:, 1]
-
-    starfile.write(df, Path(dst_star_path), overwrite=True)
-
-
-def fft2_center(img):
-    pp = np if isinstance(img, np.ndarray) else cp
-
-    return pp.fft.fftshift(pp.fft.fft2(pp.fft.fftshift(img, axes=(-1, -2))), axes=(-1, -2))
-
-
-def fftn_center(img):
-    pp = np if isinstance(img, np.ndarray) else cp
-
-    return pp.fft.fftshift(pp.fft.fftn(pp.fft.fftshift(img)))
-
-
-def ifftn_center(V):
-    pp = np if isinstance(V, np.ndarray) else cp
-
-    V = pp.fft.ifftshift(V)
-    V = pp.fft.ifftn(V)
-    V = pp.fft.ifftshift(V)
-    return V
-
-
-def ht2_center(img):
-    f = fft2_center(img)
-    return f.real - f.imag
-
-
-def htn_center(img):
-    pp = np if isinstance(img, np.ndarray) else cp
-
-    f = pp.fft.fftshift(pp.fft.fftn(pp.fft.fftshift(img)))
-    return f.real - f.imag
-
-
-def iht2_center(img):
-    img = fft2_center(img)
-    img /= img.shape[-1] * img.shape[-2]
-    return img.real - img.imag
-
-
-def ihtn_center(V):
-    pp = np if isinstance(V, np.ndarray) else cp
-
-    V = pp.fft.fftshift(V)
-    V = pp.fft.fftn(V)
-    V = pp.fft.fftshift(V)
-    V /= pp.product(V.shape)
-    return V.real - V.imag
-
-
-def _get_start_stop(src_shape, dst_shape):
-    start = np.asarray(np.asarray(src_shape) / 2 - np.asarray(dst_shape) / 2, dtype=int)
-    stop = start + np.asarray(dst_shape, dtype=int)
-    return start, stop
-
-
-def downsample_vol(vol, dst_shape):
-    start, stop = _get_start_stop(vol.shape, dst_shape)
-
-    src_ft = htn_center(vol)
-    dst_ft = src_ft[start[0]:stop[0], start[1]:stop[1], start[2]:stop[2]]
-    dst_ft = ihtn_center(dst_ft).astype(np.float32)
-    return dst_ft
-
-
-def downsample_images(images, dst_shape):
-    src_shape = images.shape[-2:]
-    start, stop = _get_start_stop(src_shape, dst_shape)
-
-    src_ft = ht2_center(images)
-    dst_ft = iht2_center(src_ft[:, start[0]:stop[0], start[1]:stop[1]]).astype(np.float32)
-    return dst_ft
-
-
-# --------
-# visualization
-def save_bonds_to_pdb(save_path, atom_arr, bond_pair_ids):
-    s = bond_pair_ids.max() + 1
-    # remove duplicates
-    mask = np.zeros((s, s), dtype=bool)
-    np.put(mask, np.ravel_multi_index(bond_pair_ids.T, mask.shape), True)
-    mask = np.triu(mask, k=1)
-    pair_ids = np.column_stack(np.nonzero(mask))
-    tmp_atom_arr = atom_arr.copy()
-    tmp_atom_arr.bonds = struc.BondList(len(atom_arr), pair_ids)
-    bt_save_pdb(save_path, tmp_atom_arr)
-
-
-class DeformerProtocol(ABC):
-
-    @abstractmethod
-    def transform(self, deformation, coords):
-        """
-        Input:
-            deformation: (bsz, _)
-            coords: (num_coords, 3)
-
-        Returns:
-            (bsz, num_coords, 3)
-        """
-
-
-class E3Deformer(torch.nn.Module, DeformerProtocol):
-
-    def transform(self, deformation, coords):
-        ASSERT_SHAPE(coords, (None, 3))
-        ASSERT_SHAPE(deformation, (None, coords.shape[0] * 3))
-
-        bsz = deformation.shape[0]
-        shift = deformation.reshape(bsz, -1, 3)
-        return shift + coords
-
-
-class NMADeformer(torch.nn.Module, DeformerProtocol):
-    def __init__(self, modes: torch.FloatTensor) -> None:
-        super().__init__()
-        modes = einops.rearrange(
-            modes, "(num_coords c3) num_modes -> num_modes num_coords c3", c3=3
-        )
-        self.register_buffer("modes", modes)
-        self.num_modes = modes.shape[0]
-        self.num_coords = modes.shape[1]
-
-    def transform(self, deformation, coords):
-        ASSERT_SHAPE(coords, (self.num_coords, 3))
-        ASSERT_SHAPE(deformation, (None, 6 + self.num_modes))
-
-        axis_angle = deformation[..., :3]
-        translation = deformation[..., 3:6] * 10
-        nma_coeff = deformation[..., 6:]
-        rotation_matrix = axis_angle_to_matrix(axis_angle)
-
-        nma_deform_e3 = einops.einsum(
-            nma_coeff, self.modes, "bsz num_modes, num_modes num_coords c3 -> bsz num_coords c3"
-        )
-        rotated_coords = einops.einsum(rotation_matrix, nma_deform_e3 + coords,
-                                       "bsz c31 c32, bsz num_coords c31 -> bsz num_coords c32")
-        deformed_coords = rotated_coords + einops.rearrange(translation, "bsz c3 -> bsz 1 c3")
-        return deformed_coords
-
-
 class VAE(nn.Module):
 
     def __init__(
@@ -980,8 +429,6 @@ class VAE(nn.Module):
         out_dim: int,
         e_hidden_layers: int,
         d_hidden_layers: int,
-        num_particles: int = -1,
-        aa_types: str = None,
     ):
         super().__init__()
         if encoder_cls == "MLP":

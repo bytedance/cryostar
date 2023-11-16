@@ -29,16 +29,17 @@ from cryostar.utils.misc import log_to_current, \
     pl_init_exp, pretty_dict, set_seed, calc_cor_loss, calc_kl_loss
 from cryostar.utils.pdb_tools import bt_save_pdb
 from cryostar.gmm.gmm import EMAN2Grid, batch_projection, Gaussian
+from cryostar.gmm.deformer import E3Deformer, NMADeformer
 from cryostar.utils.fft_utils import primal_to_fourier_2d, fourier_to_primal_2d
 from cryostar.utils.polymer import Polymer, NT_ATOMS, AA_ATOMS
 from cryostar.utils.dist_loss import (find_quaint_cutoff_pairs, find_range_cutoff_pairs, find_continuous_pairs,
                                       calc_dist_by_pair_indices, remove_duplicate_pairs, filter_same_chain_pairs,
                                       DistLoss)
+from cryostar.utils.latent_space_utils import get_nearest_point, cluster_kmeans, run_pca, get_pc_traj, run_umap
 
 from miscs import save_tensor_image, warmup, calc_pair_dist_loss, calc_clash_loss, \
     merge_step_outputs, squeeze_dict_outputs_1st_dim, get_1st_unique_indices, filter_outputs_by_indices, \
-    get_nearest_point, cluster_kmeans, run_umap, plot_z_dist, low_pass_mask2d, \
-    run_pca, get_pc_traj, E3Deformer, VAE, NMADeformer, infer_ctf_params_from_config
+    plot_z_dist, low_pass_mask2d, VAE, infer_ctf_params_from_config
 
 # avoid num_workers set as cpu_count warning
 warnings.simplefilter("ignore", PossibleUserWarning)
@@ -153,7 +154,6 @@ class CryoEMTask(pl.LightningModule):
             raise NotImplementedError
         self.model = VAE(in_dim=in_dim,
                          out_dim=num_pts * 3 if nma_modes is None else 6 + nma_modes.shape[1],
-                         num_particles=len(dataset),
                          **cfg.model.model_cfg)
         log_to_current('Model summary:\n' + str(summary(self.model, input_size=[(1, in_dim), (1,)], verbose=0)))
         if nma_modes is None:
