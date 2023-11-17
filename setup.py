@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 # copied from https://github.com/open-mmlab/mmdetection/blob/master/setup.py
@@ -80,7 +80,8 @@ if __name__ == "__main__":
     # currently configuration with pyproject.toml is *BETA*
     setup(name='cryostar',
           version='0.1.0',
-          packages=['cryostar', ],
+          packages=find_packages(exclude=("projects", "assets")),
+          include_package_data=True,
           entry_points=
           {'console_scripts': [
               'show_mrc_info=cryostar.cli_tools.sak:show_mrc_info',
