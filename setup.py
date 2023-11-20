@@ -84,9 +84,9 @@ if __name__ == "__main__":
           include_package_data=True,
           entry_points=
           {'console_scripts': [
-              'show_mrc_info=cryostar.cli_tools.sak:show_mrc_info',
-              'center_origin=cryostar.cli_tools.sak:center_origin',
-              'generate_gaussian_density=cryostar.cli_tools.sak:generate_gaussian_density'
+              'cstar_show_mrc_info=cryostar.cli_tools.sak:show_mrc_info',
+              'cstar_center_origin=cryostar.cli_tools.sak:center_origin',
+              'cstar_generate_gaussian_density=cryostar.cli_tools.sak:generate_gaussian_density'
           ], },
           license='Apache-2.0 License',
           author='Yi Zhou, Jing Yuan, Yilai Li',
