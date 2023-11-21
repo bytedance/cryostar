@@ -19,7 +19,7 @@ from cryostar.utils.fft_utils import (fourier_to_primal_2d, primal_to_fourier_2d
 from cryostar.utils.latent_space_utils import sample_along_pca, get_nearest_point, cluster_kmeans
 from cryostar.utils.misc import (pl_init_exp, create_circular_mask, log_to_current, pretty_dict)
 from cryostar.utils.losses import calc_kl_loss
-from cryostar.utils.ml_modules import VAEEncoder
+from cryostar.utils.ml_modules import VAEEncoder, reparameterize
 from cryostar.utils.mrc_tools import save_mrc
 
 from miscs import infer_ctf_params_from_config
@@ -104,7 +104,7 @@ class CryoModel(pl.LightningModule):
 
         if self.z_dim != 0:
             if self.cfg.extra_input_data_attr.given_z is not None:
-                mu = self.given_z[batch["idx"]].reshape(bsz, -1)
+                z = self.given_z[batch["idx"]].reshape(bsz, -1)
                 kld_loss = 0.0
             else:
                 if self.cfg.model.enc_space == "fourier":
@@ -112,9 +112,10 @@ class CryoModel(pl.LightningModule):
                 elif self.cfg.model.enc_space == "real":
                     enc_input = einops.rearrange(proj_in, "b 1 ny nx -> b (1 ny nx)")
                 mu, log_var = self.encoder(enc_input)
+                z = reparameterize(mu, log_var)
                 kld_loss = calc_kl_loss(mu, log_var, 0)
                 kld_loss = kld_loss / self.mask.sum()
-            f_pred = self.vol(mu, R)
+            f_pred = self.vol(z, R)
         else:
             f_pred = self.vol(None, R)
 
