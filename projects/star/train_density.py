@@ -210,7 +210,7 @@ class CryoModel(pl.LightningModule):
                 kmeans_labels, centers = cluster_kmeans(zs, 10)
                 centers, centers_ind = get_nearest_point(zs, centers)
                 np.savetxt(f"{save_dir}/z_kmeans.txt", centers, fmt='%.5f')
-                np.savetxt(f"{save_dir}/z_kemans_ind.txt", centers_ind, fmt='%d')
+                np.savetxt(f"{save_dir}/z_kmeans_ind.txt", centers_ind, fmt='%d')
                 centers = torch.from_numpy(centers).to(self.device)
                 for i in range(len(centers)):
                     v = self.vol.make_volume(centers[i:i + 1])
