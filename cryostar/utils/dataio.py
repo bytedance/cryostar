@@ -107,13 +107,13 @@ class StarfileDataSet(Dataset):
     def estimate_normalization(self):
         if self.f_mu is None and self.f_std is None:
             f_sub_data = []
-            for i in range(0, len(self), len(self) // 1000):
+            # I have checked that the standard deviation of 10/100/1000 particles is similar
+            for i in range(0, len(self), len(self) // 100):
                 f_sub_data.append(self[i]["fproj"])
             f_sub_data = torch.cat(f_sub_data, dim=0)
             # self.f_mu = torch.mean(f_sub_data)
             self.f_mu = 0.0  # just follow cryodrgn
-            self.f_std = torch.std(f_sub_data)
-            print(f"Fourier mu/std: {self.f_mu:.5f}/{self.f_std:.5f}")
+            self.f_std = torch.std(f_sub_data).item()
         else:
             raise Exception("The normalization factor has been estimated!")
 

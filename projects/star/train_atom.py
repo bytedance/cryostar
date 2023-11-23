@@ -565,7 +565,7 @@ class CryoEMTask(pl.LightningModule):
 
             # --------
             # pca
-            for pca_dim in (1, 2, 3):
+            for pca_dim in range(1, 1 + min(3, self.cfg.model.z_dim)):
                 pc, pca = run_pca(z_list)
                 start = np.percentile(pc[:, pca_dim - 1], 5)
                 stop = np.percentile(pc[:, pca_dim - 1], 95)

@@ -53,11 +53,11 @@ model = dict(shift_data=False,
              pe_type="gau2",
              net_type="cryodrgn", )
 
-#
-mask = dict(mask_rad=1)
-
 # loss type
-loss = dict(loss_fn="fmsf")
+loss = dict(
+    loss_fn="fmsf",
+    mask_rad_for_image_loss=1,
+)
 
 # lightning trainer setup, you may need to change devices number to the available number of GPUs you can use
 trainer = dict(
@@ -65,7 +65,7 @@ trainer = dict(
     max_epochs=20,
     devices=4,
     precision="16-mixed",
-    eval_every_step=0,
-    # do evaluation and save result every 5 epochs
-    eval_every_epoch=5,
+    num_sanity_val_steps=0,
+    val_check_interval=None,
+    check_val_every_n_epoch=5
 )

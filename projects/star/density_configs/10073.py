@@ -34,15 +34,17 @@ model = dict(shift_data=False,
              pe_type="gau2",
              net_type="cryodrgn",)
 
-# control volume supervised region
-mask = dict(mask_rad=1)
-
-loss = dict(loss_fn="fmsf")
+# loss type
+loss = dict(
+    loss_fn="fmsf",
+    mask_rad_for_image_loss=1,
+)
 
 trainer = dict(
     max_epochs=5,
     devices=4,
     precision="16-mixed",
-    eval_every_step=0,
-    eval_every_epoch=5,
+    num_sanity_val_steps=0,
+    val_check_interval=None,
+    check_val_every_n_epoch=5
 )

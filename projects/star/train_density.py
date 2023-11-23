@@ -57,7 +57,7 @@ class CryoModel(pl.LightningModule):
         log_to_current(ctf_params)
 
         self.vol = ImplicitFourierVolume(
-            self.z_dim, self.cfg.data_process.down_side_shape, self.cfg.mask.mask_rad, {
+            self.z_dim, self.cfg.data_process.down_side_shape, self.cfg.loss.mask_rad_for_image_loss, {
                 "net_type": cfg.model.net_type,
                 "pe_dim": self.cfg.data_process.down_side_shape,
                 "D": self.cfg.data_process.down_side_shape,
@@ -66,7 +66,7 @@ class CryoModel(pl.LightningModule):
                 "hidden": cfg.model.hidden,
             }, None)
         mask = create_circular_mask(self.cfg.data_process.down_side_shape, self.cfg.data_process.down_side_shape, None,
-                                    self.cfg.data_process.down_side_shape // 2 * self.cfg.mask.mask_rad)
+                                    self.cfg.data_process.down_side_shape // 2 * self.cfg.loss.mask_rad_for_image_loss,)
         self.register_buffer("mask", torch.from_numpy(mask))
         if cfg.extra_input_data_attr.given_z is not None:
             self.register_buffer("given_z", torch.from_numpy(np.load(cfg.extra_input_data_attr.given_z)))
@@ -144,15 +144,7 @@ class CryoModel(pl.LightningModule):
                            pretty_dict(log_dict, 5))
         return loss
 
-    def on_train_batch_end(self, *args, **kwargs) -> None:
-        if self.cfg.trainer.eval_every_step != 0 and (1 + self.global_step) % self.cfg.trainer.eval_every_step == 0:
-            self.evaluate()
-
-    def on_train_epoch_end(self, *args, **kwargs) -> None:
-        if self.cfg.trainer.eval_every_step == 0 and (1 + self.current_epoch) % self.cfg.trainer.eval_every_epoch == 0:
-            self.evaluate()
-
-    def on_validation_epoch_start(self) -> None:
+    def on_validation_start(self) -> None:
         self.evaluate()
 
     def validation_step(self, *args, **kwargs):
@@ -217,7 +209,7 @@ class CryoModel(pl.LightningModule):
                     save_mrc(v.cpu().numpy(), f"{save_dir}/vol_kmeans_{i:03}.mrc", pixel_size,
                              -pixel_size * (v.shape[0] // 2))
 
-                for pca_dim in (1, 2, 3):
+                for pca_dim in range(1, 1 + min(3, self.cfg.model.z_dim)):
                     z_on_pca, z_on_pca_id = sample_along_pca(zs, pca_dim, 10)
                     np.savetxt(f"{save_dir}/z_pca_{pca_dim}.txt", z_on_pca, fmt='%.5f')
                     np.savetxt(f"{save_dir}/z_pca_ind_{pca_dim}.txt", z_on_pca_id, fmt='%d')
@@ -278,6 +270,7 @@ def train():
         dataset.f_std = cfg.dataset_attr.f_std
     else:
         dataset.estimate_normalization()
+    log_to_current(f"Fourier mu/std: {dataset.f_mu:.5f}/{dataset.f_std:.5f}")
 
     cryo_model = CryoModel(cfg, dataset)
     train_loader = DataLoader(dataset=dataset,
@@ -285,20 +278,16 @@ def train():
                               shuffle=True,
                               num_workers=cfg.data_loader.workers_per_gpu)
 
-    trainer = pl.Trainer(max_epochs=cfg.trainer.max_epochs,
-                         devices=cfg.trainer.devices,
-                         accelerator="gpu" if torch.cuda.is_available() else "cpu",
-                         precision=cfg.trainer.precision,
+    trainer = pl.Trainer(accelerator="gpu" if torch.cuda.is_available() else "cpu",
                          strategy=DDPStrategy(find_unused_parameters=True),
                          logger=False,
-                         log_every_n_steps=50,
                          enable_checkpointing=False,
                          enable_model_summary=False,
                          enable_progress_bar=False,
-                         num_sanity_val_steps=0)
+                         **cfg.trainer)
 
     if not cfg.eval_mode:
-        trainer.fit(cryo_model, train_dataloaders=train_loader)
+        trainer.fit(cryo_model, train_dataloaders=train_loader, val_dataloaders=["DUMMY VALID LOADER"])
     else:
         trainer.validate(model=cryo_model, dataloaders=["DUMMY VALID LOADER"])
 
