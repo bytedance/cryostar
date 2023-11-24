@@ -1,91 +1,141 @@
-# Users essentially only need to modify the parameters here to adapt to their own dataset.
-dataset_attr = dict(
-    # where your dataset located, specify the directory location where the first-level directory of
-    # the .mrcs file in your starfile is located.
-    dataset_dir="xxx/xxx/xxx",
-    # specify the path of your starfile
-    starfile_path="xxx/xxx/xxx/xxx.star",
-    # original pixel size of the dataset, if None, this value will be inferred from starfile
-    apix=None,
-    # original shape of the dataset, if None, this value will be inferred from starfile
-    side_shape=None,
-    # ref PDB structure file path
-    ref_pdb_path="xxx/xxx.pdb",
-)
-
-extra_input_data_attr = dict(
-    # NMA meta data path
-    nma_path="",
-    # use protein domain or not, this is now not included in the released version
-    use_domain=False,
-    # domain meta data path
-    domain_path=None,
-    # checkpoint path if you want to resume from other experiment
-    ckpt_path=None
-)
-
-data_process = dict(
-    # down-sampled shape. if it is None, it will be the dataset_attr.side_shape
-    # if dataset_attr.side_shape < 256, else it will be set to 128 automatically
-    down_side_shape=None,
-    # control if gt images will be masked, defined by the radius in ratio
-    mask_rad=1.0,
-    # optional: low-pass filter bandwidth determined by the FSC between Gaussian
-    # density and consensus map, typically use 10
-    low_pass_bandwidth=10.,
-)
-
-data_loader = dict(
-    # training mini-batch size per GPU
-    train_batch_per_gpu=64,
-    # validation mini-batch size per GPU, can be slightly larger than training
-    val_batch_per_gpu=128,
-    workers_per_gpu=4,
-)
-
 # random seed
 seed = 1
-# you can customize experiment name here, by default it is named by the python script and config file name
+# The name of the experiment. This affects the name of output directory.
 exp_name = ""
-# do evaluation only, usually False
+# Whether you want to do evaluation only, usually False.
 eval_mode = False
 # init the decoder outputs to be 0 or not
 do_ref_init = True
 
-# use trainable Gaussian density parameter or not, keep it False otherwise the gmm parameter will fit noise
+# ==========================================
+# Where is your dataset and how it looks like?
+# ------------------------------------------
+#
+# Parameters:
+#   dataset_dir: the path of your dataset.
+#       This parameter specifies the directory location where the top-level directory of
+#       the .mrcs file in your starfile is located.
+#   starfile_path: the path of your starfile.
+#   ref_pdb_path: the path of a reference pdb structure.
+#   apix: original pixel size of the dataset.
+#       If None, this value will be inferred from starfile
+#   side_shape: original shape of the dataset.
+#       If None, this value will be inferred from starfile.
+dataset_attr = dict(
+    # >>> important parameters you may change <<<
+    dataset_dir="xxx/xxx/xxx",
+    starfile_path="xxx/xxx/xxx/xxx.star",
+    ref_pdb_path="xxx/xxx.pdb",
+    # >>> default ones work well <<<
+    apix=None,
+    side_shape=None,
+)
+
+# ==========================================
+# How to preprocess the data?
+# ------------------------------------------
+#
+# Parameters:
+#   down_side_shape: the downsampled side length.
+#       If None, it will be set to the min(128, dataset_attr.side_shape)
+#       Tip: You can set it to the original side length without pains if the
+#           result looks odd.
+#   mask_rad: the radius in ratio (0.0~1.0) that the particles will be masked
+#   low_pass_bandwidth: low-pass filter bandwidth of the Gaussian density.
+#       Oftern determined by the FSC between Gaussian density and consensus map.
+#       We set it to 10 by default. This parameter is not sensitive.
+data_process = dict(
+    # >>> important parameters you may change <<<
+    down_side_shape=None,
+    # >>> default ones work well <<<
+    mask_rad=1.0,
+    low_pass_bandwidth=10.,
+)
+
+# ==========================================
+# Some extra information of the input
+# ------------------------------------------
+#
+# Parameters:
+#   nma_path: NMA meta data path.
+#   use_domain: use protein domain or not, this is now not included in the released version
+#   domain_path: domain meta data path
+#   ckpt_path: checkpoint path if you want to resume from other experiment
+extra_input_data_attr = dict(
+    # >>> default ones work well <<<
+    nma_path="",
+    use_domain=False,
+    domain_path=None,
+    ckpt_path=None)
+
+# ==========================================
+# How to load the data?
+# ------------------------------------------
+#
+# Parameters:
+#   train_batch_per_gpu: training mini-batch size per GPU.
+#       Tip-1: Too small batch size may cause the model to be affected by noises.
+#       Tip-2: In this example config, we control the training process through `max_epochs`.
+#           In this case, a larger batch size may not always work well, since it may cause
+#           a smaller number of total updating steps. The number of total steps is crucial to
+#           the reconstruction quality.
+#       In a word, you can increase the batch size (since deep learning prefers large batch size)
+#       but if you find the result becomes worse, consider increase the `trainer.max_epochs` simutaneously!
+#   val_batch_per_gpu: validation mini-batch size per GPU.
+#       It can be slightly larger than training.
+data_loader = dict(
+    # >>> important parameters you may change <<<
+    train_batch_per_gpu=64,
+    # >>> default ones work well <<<
+    val_batch_per_gpu=128,
+    workers_per_gpu=4,
+)
+
+# ==========================================
+# How does the Gaussian density look like?
+# ------------------------------------------
+#
+# Parameters:
+#   tunable: use trainable Gaussian density parameter or not.
+#       Tip: just keep it to be False otherwise the gmm parameter will fit noise.
 gmm = dict(tunable=False)
 
-# model related parameters
-model = dict(model_type="VAE",
-             input_space="real",
-             model_cfg=dict(
-                 encoder_cls='MLP',
-                 decoder_cls='MLP',
-                 # number of neurons in encoder (e_) every layer
-                 e_hidden_dim=(512, 256, 128, 64, 32),
-                 # the latent space dimension
-                 latent_dim=8,
-                 # number of neurons in decoder (d_) every layer
-                 d_hidden_dim=(32, 64, 128, 256, 512),
-                 # number of layers in encoder, should be equal to len(e_hidden_dim)
-                 e_hidden_layers=5,
-                 # number of layers in decoder, should be equal to len(d_hidden_dim)
-                 d_hidden_layers=5,
-             ))
+# ==========================================
+# How to modify the model architecture?
+# ------------------------------------------
+#
+# Parameters:
+#   e_hidden_dim: number of neurons in each layer of the encoder.
+#   latent_dim: the latent space dimension.
+#   d_hidden_dim: number of neurons in each layer of the decoder.
+#   e_hidden_layers: number of layers in encoder, should be equal to len(e_hidden_dim)
+#   d_hidden_layers: number of layers in decoder, should be equal to len(d_hidden_dim)
+#
+model = dict(
+    # >>> default ones work well <<<
+    model_type="VAE",
+    input_space="real",
+    model_cfg=dict(
+        encoder_cls='MLP',
+        decoder_cls='MLP',
+        e_hidden_dim=(512, 256, 128, 64, 32),
+        latent_dim=8,
+        d_hidden_dim=(32, 64, 128, 256, 512),
+        e_hidden_layers=5,
+        d_hidden_layers=5,
+    ))
 
-# loss and regularization related parameters
+# ==========================================
+# What is the loss function?
+# ------------------------------------------
 loss = dict(
-    # intra-chain cutoff in protein chains, related to the cutoff defines k_{EN} in the paper
+    # >>> default ones work well <<<
+    # related to cutoff k_{EN} in the paper
     intra_chain_cutoff=12.,
-    # always 0
     inter_chain_cutoff=0.,
-    # always None
     intra_chain_res_bound=None,
-    # intra-chain cutoff in DNA/RNA chains
     nt_intra_chain_cutoff=15.,
-    # inter-chain cutoff in DNA/RNA chains
     nt_inter_chain_cutoff=15.,
-    # always None
     nt_intra_chain_res_bound=None,
     # related to cutoff k_{clash} in the paper
     clash_min_cutoff=4.0,
@@ -119,10 +169,23 @@ analyze = dict(cluster_k=10, skip_umap=True, downsample_shape=112)
 # print log on console every 50 steps
 runner = dict(log_every_n_step=50, )
 
-# lightning trainer setup, you may need to change devices number to the available number of GPUs you can use
-trainer = dict(max_steps=96000,
-               devices=4,
-               precision="16-mixed",
-               num_sanity_val_steps=0,
-               val_check_interval=12000,
-               check_val_every_n_epoch=None)
+# ==========================================
+# How do you want to train the model?
+# ------------------------------------------
+#
+# Parameters:
+#   max_steps: how many steps you would like to train cryoSTAR.
+#       Tip-1: We suggest use 96000 by default.
+#       Tip-2: Increasing it may always help.
+#
+#   devices: how many GPU you want to use.
+#       It must not exceed the total number of GPUs of your machine.
+trainer = dict(
+    # >>> important parameters you may change <<<
+    max_steps=96000,
+    devices=4,
+    # >>> default ones work well <<<
+    precision="16-mixed",
+    num_sanity_val_steps=0,
+    val_check_interval=12000,
+    check_val_every_n_epoch=None)
