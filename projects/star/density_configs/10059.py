@@ -37,6 +37,7 @@ model = dict(shift_data=False,
 loss = dict(
     loss_fn="fmsf",
     mask_rad_for_image_loss=1,
+    free_bits=3.0
 )
 
 trainer = dict(

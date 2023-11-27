@@ -113,7 +113,7 @@ class CryoModel(pl.LightningModule):
                     enc_input = einops.rearrange(proj_in, "b 1 ny nx -> b (1 ny nx)")
                 mu, log_var = self.encoder(enc_input)
                 z = reparameterize(mu, log_var)
-                kld_loss = calc_kl_loss(mu, log_var, 0)
+                kld_loss = calc_kl_loss(mu, log_var, self.cfg.loss.free_bits)
                 kld_loss = kld_loss / self.mask.sum()
             f_pred = self.vol(z, R)
         else:

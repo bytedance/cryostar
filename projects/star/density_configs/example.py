@@ -107,6 +107,7 @@ loss = dict(
     # >>> default ones work well <<<
     loss_fn="fmsf",
     mask_rad_for_image_loss=0.85,
+    free_bits=3.0
 )
 
 # ==========================================
