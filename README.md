@@ -87,7 +87,7 @@ density_xxxxx/
 ## Reference
 You may cite this software by:
 ```bibtex
-@article {Li2023cryostar,
+@article {li2023cryostar,
     author = {Yilai Li and Yi Zhou and Jing Yuan and Fei Ye and Quanquan Gu},
     title = {CryoSTAR: Leveraging Structural Prior and Constraints for Cryo-EM Heterogeneous Reconstruction},
     elocation-id = {2023.10.31.564872},
