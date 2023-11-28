@@ -32,8 +32,8 @@ def infer_ctf_params_from_config(cfg):
     ctf_params = parse_ctf_star(star_file_path, side_shape=cfg.data_process.down_side_shape,
                                 apix=cfg.data_process.down_apix)[0].tolist()
     ctf_params = {
-        "size": int(ctf_params[0]),
-        "resolution": ctf_params[1],
+        "size": cfg.data_process.down_side_shape,
+        "resolution": cfg.data_process.down_apix,
         "kV": ctf_params[5],
         "cs": ctf_params[6],
         "amplitudeContrast": ctf_params[7]
