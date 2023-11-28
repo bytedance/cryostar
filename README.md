@@ -12,8 +12,8 @@ The detailed user guide can be found at [here](https://byte-research.gitbook.io/
 
 ## Installation
 
-- Create a conda enviroment: `conda create -n cryostar python=3.9 -y`
-- Install the package: `pip install .`
+- Create a conda environment: `conda create -n cryostar python=3.9 -y`
+- Clone this repository and install the package: `git clone https://github.com/bytedance/cryostar.git && cd cryostar && pip install .`
 
 ## Quick start
 
