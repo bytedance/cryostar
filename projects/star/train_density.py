@@ -64,7 +64,7 @@ class CryoModel(pl.LightningModule):
                 "pe_type": cfg.model.pe_type,
                 "force_symmetry": False,
                 "hidden": cfg.model.hidden,
-            }, None)
+            })
         mask = create_circular_mask(self.cfg.data_process.down_side_shape, self.cfg.data_process.down_side_shape, None,
                                     self.cfg.data_process.down_side_shape // 2 * self.cfg.loss.mask_rad_for_image_loss,)
         self.register_buffer("mask", torch.from_numpy(mask))
