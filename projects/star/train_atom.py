@@ -24,7 +24,7 @@ from mmengine import mkdir_or_exist
 from cryostar.utils.transforms import SpatialGridTranslate
 # other
 from cryostar.utils.dataio import StarfileDataSet, StarfileDatasetConfig, Mask
-from cryostar.utils.ctf_utils import CTFRelion
+from cryostar.utils.ctf_utils import CTFRelion, CTFCryoDRGN
 from cryostar.utils.losses import calc_cor_loss, calc_kl_loss
 from cryostar.utils.misc import log_to_current, \
     pl_init_exp, pretty_dict, set_seed, warmup
@@ -257,7 +257,13 @@ class CryoEMTask(pl.LightningModule):
         self.grid = grid
 
         ctf_params = infer_ctf_params_from_config(cfg)
-        self.ctf = CTFRelion(**ctf_params, num_particles=len(dataset))
+        if cfg.model.ctf == "v1":
+            self.ctf = CTFRelion(**ctf_params, num_particles=len(dataset))
+            log_to_current("We will deprecate `model.ctf=v1` in a future version, use `model.ctf=v2` instead.")
+        elif cfg.model.ctf == "v2":
+            self.ctf = CTFCryoDRGN(**ctf_params, num_particles=len(dataset))
+        else:
+            raise NotImplementedError
         log_to_current(ctf_params)
 
         # translate image helper

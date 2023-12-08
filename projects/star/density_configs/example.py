@@ -92,6 +92,7 @@ data_loader = dict(
 #       Tip: Change it to 256 may make training faster.
 model = dict(
     # >>> default ones work well <<<
+    ctf="v2",
     shift_data=False,
     enc_space="fourier",
     hidden=1024,

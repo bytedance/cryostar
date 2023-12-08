@@ -115,6 +115,7 @@ model = dict(
     # >>> default ones work well <<<
     model_type="VAE",
     input_space="real",
+    ctf="v2",
     model_cfg=dict(
         encoder_cls='MLP',
         decoder_cls='MLP',

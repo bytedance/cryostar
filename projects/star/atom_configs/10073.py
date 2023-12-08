@@ -35,6 +35,7 @@ gmm = dict(tunable=False)
 
 model = dict(model_type="VAE",
              input_space="real",
+             ctf="v1",
              model_cfg=dict(
                  encoder_cls='MLP',
                  decoder_cls='MLP',

@@ -14,7 +14,7 @@ from mmengine import mkdir_or_exist
 from cryostar.utils.dataio import StarfileDataSet, StarfileDatasetConfig
 from cryostar.nerf.volume_utils import ImplicitFourierVolume
 from cryostar.utils.transforms import SpatialGridTranslate
-from cryostar.utils.ctf_utils import CTFRelion
+from cryostar.utils.ctf_utils import CTFRelion, CTFCryoDRGN
 from cryostar.utils.fft_utils import (fourier_to_primal_2d, primal_to_fourier_2d)
 from cryostar.utils.latent_space_utils import sample_along_pca, get_nearest_point, cluster_kmeans
 from cryostar.utils.misc import (pl_init_exp, create_circular_mask, log_to_current, pretty_dict)
@@ -53,7 +53,13 @@ class CryoModel(pl.LightningModule):
         self.translate = SpatialGridTranslate(self.cfg.data_process.down_side_shape, )
 
         ctf_params = infer_ctf_params_from_config(cfg)
-        self.ctf = CTFRelion(**ctf_params, num_particles=len(dataset))
+        if cfg.model.ctf == "v1":
+            self.ctf = CTFRelion(**ctf_params, num_particles=len(dataset))
+            log_to_current("We will deprecate `model.ctf=v1` in a future version, use `model.ctf=v2` instead.")
+        elif cfg.model.ctf == "v2":
+            self.ctf = CTFCryoDRGN(**ctf_params, num_particles=len(dataset))
+        else:
+            raise NotImplementedError
         log_to_current(ctf_params)
 
         self.vol = ImplicitFourierVolume(

@@ -47,6 +47,15 @@ class CTFIdentity(CTFBase):
 
 
 class CTFRelion(CTFBase):
+    """
+    BUG: There are two bugs in this file:
+        1. `self.angleFrequency` has some error for even-sized grid.
+        2. `local_defocus` in `get_ctf()` has some error, `angleAstigmatism` should be
+            replaced with `defocusU - defocusV`.
+
+        The bugs will not affect real-world data too much. But you may encounter some issues
+        on simulated datasets. Use CTFCryoDRGN instead.
+    """
 
     def __init__(self,
                  size=257,
@@ -222,8 +231,10 @@ class CTFCryoDRGN(CTFBase):
         self.kV = kV
         self.cs = cs
         self.ac = amplitudeContrast
-        ax = torch.linspace(-1. / (2. * resolution), 1 / (2. * resolution), self.size)
-        mx, my = torch.meshgrid(ax, ax, indexing="ij")
+        # ax = torch.linspace(-1. / (2. * resolution), 1 / (2. * resolution), self.size)
+        # mx, my = torch.meshgrid(ax, ax, indexing="ij")
+        ax = torch.fft.fftshift(torch.fft.fftfreq(self.size, self.resolution))
+        mx, my = torch.meshgrid(ax, ax, indexing="xy")
         freqs = torch.stack([mx.flatten(), my.flatten()], 1)
         self.register_buffer("freqs", freqs)
 

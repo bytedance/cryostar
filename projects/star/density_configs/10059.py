@@ -13,7 +13,7 @@ extra_input_data_attr = dict(
 )
 
 data_process = dict(
-    down_side_shape=128,
+    down_side_shape=192,
     mask_rad=1.0,
 )
 
@@ -28,6 +28,7 @@ eval_mode = False
 
 model = dict(shift_data=False,
              enc_space="fourier",
+             ctf="v1",
              hidden=1024,
              z_dim=8,
              pe_type="gau2",
