@@ -14,6 +14,7 @@ extra_input_data_attr = dict(
 
 data_process = dict(
     down_side_shape=128,
+    down_method="interp",
     mask_rad=1.0,
 )
 
@@ -27,6 +28,7 @@ exp_name = ""
 eval_mode = False
 
 model = dict(shift_data=False,
+             shift_method="interp",
              enc_space="fourier",
              ctf="v1",
              hidden=1024,

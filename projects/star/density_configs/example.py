@@ -42,6 +42,7 @@ data_process = dict(
     # >>> important parameters you may change <<<
     down_side_shape=None,
     # >>> default ones work well <<<
+    down_method="fft",
     mask_rad=1.0,
 )
 
@@ -94,6 +95,7 @@ model = dict(
     # >>> default ones work well <<<
     ctf="v2",
     shift_data=False,
+    shift_method="fft",
     enc_space="fourier",
     hidden=1024,
     z_dim=8,

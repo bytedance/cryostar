@@ -10,7 +10,7 @@ import torch.fft
 import torchvision.transforms.functional as tvf
 from torch.utils.data import Dataset
 
-from cryostar.utils.fft_utils import primal_to_fourier_2d, fourier_to_primal_2d
+from cryostar.utils.fft_utils import primal_to_fourier_2d, fourier_to_primal_2d, downsample_2d
 from cryostar.utils.geom_utils import euler_angles2matrix
 
 
@@ -38,6 +38,7 @@ class StarfileDatasetConfig:
     side_shape:      int   = None
     # down-sample the original image or not
     down_side_shape: int   = None
+    down_method:     str   = "interp"
     # apply a circular mask on input image or not
     mask_rad:        float = None
     # change image values
@@ -139,7 +140,12 @@ class StarfileDataSet(Dataset):
 
             # down-sample
             if self.down_side_shape != self.side_shape:
-                proj = tvf.resize(proj, [self.down_side_shape, ] * 2, antialias=True)
+                if self.cfg.down_method == "interp":
+                    proj = tvf.resize(proj, [self.down_side_shape, ] * 2, antialias=True)
+                elif self.cfg.down_method == "fft":
+                    proj = downsample_2d(proj[0, :, :], self.down_side_shape)[None, :, :]
+                else:
+                    raise NotImplementedError
 
             if self.cfg.mask_rad is not None:
                 proj = self.mask(proj)

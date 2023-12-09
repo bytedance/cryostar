@@ -236,3 +236,17 @@ def downsample_3d(r: torch.Tensor, down_side: int) -> torch.Tensor:
     f_density_down = f_density[s:e, s:e, s:e]
     density_down = fourier_to_primal_3d(f_density_down).real
     return density_down
+
+
+def downsample_2d(r: torch.Tensor, down_side: int) -> torch.Tensor:
+    f_image = primal_to_fourier_2d(r)
+    D = f_image.shape[0]
+    DC_loc = D // 2
+    DC_left = down_side // 2
+    DC_right = down_side - DC_left
+
+    s = DC_loc - DC_left
+    e = DC_loc + DC_right
+    f_image_down = f_image[s:e, s:e]
+    image_down = fourier_to_primal_2d(f_image_down).real
+    return image_down

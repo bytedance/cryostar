@@ -13,7 +13,7 @@ from mmengine import mkdir_or_exist
 
 from cryostar.utils.dataio import StarfileDataSet, StarfileDatasetConfig
 from cryostar.nerf.volume_utils import ImplicitFourierVolume
-from cryostar.utils.transforms import SpatialGridTranslate
+from cryostar.utils.transforms import SpatialGridTranslate, FourierGridTranslate
 from cryostar.utils.ctf_utils import CTFRelion, CTFCryoDRGN
 from cryostar.utils.fft_utils import (fourier_to_primal_2d, primal_to_fourier_2d)
 from cryostar.utils.latent_space_utils import sample_along_pca, get_nearest_point, cluster_kmeans
@@ -50,8 +50,13 @@ class CryoModel(pl.LightningModule):
                                           num_hidden_layers=4)
             else:
                 raise NotImplementedError
-        self.translate = SpatialGridTranslate(self.cfg.data_process.down_side_shape, )
-
+        if cfg.model.shift_method == "interp":
+            self.translate = SpatialGridTranslate(self.cfg.data_process.down_side_shape, )
+            log_to_current("We will deprecate `model.shift_method=interp` in a future version, use `model.shift_method=fft` instead.")
+        elif cfg.model.shift_method == "fft":
+            self.f_translate = FourierGridTranslate(self.cfg.data_process.down_side_shape, )
+        else:
+            raise NotImplementedError
         ctf_params = infer_ctf_params_from_config(cfg)
         if cfg.model.ctf == "v1":
             self.ctf = CTFRelion(**ctf_params, num_particles=len(dataset))
@@ -96,7 +101,12 @@ class CryoModel(pl.LightningModule):
         ],
                           dim=2)
         proj_in = batch["proj"].to(self.device)
-        proj = self.translate.transform(proj_in.squeeze(1), trans.to(self.device))
+        if self.cfg.model.shift_method == "interp":
+            proj = self.translate.transform(proj_in.squeeze(1), trans.to(self.device))
+        elif self.cfg.model.shift_method == "fft":
+            fproj = primal_to_fourier_2d(proj_in)
+            fproj = self.f_translate.transform(fproj.squeeze(1), trans.to(self.device))
+            proj = fourier_to_primal_2d(fproj)
         if self.cfg.model.shift_data:
             return proj, proj
         else:
@@ -248,10 +258,13 @@ def train():
             apix=cfg.dataset_attr.apix,
             side_shape=cfg.dataset_attr.side_shape,
             down_side_shape=cfg.data_process.down_side_shape,
+            down_method=cfg.data_process.down_method,
             mask_rad=cfg.data_process.mask_rad,
             power_images=1.0,
             ignore_rots=False,
             ignore_trans=False, ))
+    if cfg.data_process.down_method == "interp":
+        log_to_current("We will deprecate `data_process.down_method=interp` in a future version, use `data_process.down_method=fft` instead.")
 
     #
     if cfg.dataset_attr.apix is None:
