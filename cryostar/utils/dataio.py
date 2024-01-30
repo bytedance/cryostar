@@ -31,8 +31,8 @@ class Mask(torch.nn.Module):
 #yapf: disable
 @dataclass
 class StarfileDatasetConfig:
-    dataset_dir:     str
     starfile_path:   str
+    dataset_dir:     str   = None
     # if is not specified, the following apix, and side_shape will be inferred from starfile
     apix:            float = None
     side_shape:      int   = None
@@ -60,6 +60,12 @@ class StarfileDataSet(Dataset):
     def __init__(self, cfg: StarfileDatasetConfig):
         super().__init__()
         self.cfg = cfg
+        starfile_path = Path(cfg.starfile_path).resolve()
+        if cfg.dataset_dir is None:
+            cfg.dataset_dir = Path(starfile_path).resolve().parent
+        else:
+            cfg.dataset_dir = Path(cfg.dataset_dir)
+
         self.df = starfile.read(Path(cfg.starfile_path))
 
         if "optics" in self.df:
@@ -93,8 +99,10 @@ class StarfileDataSet(Dataset):
         self.num_proj = len(particles_df)
 
         self.down_side_shape = self.side_shape
+        self.down_apix = self.apix
         if cfg.down_side_shape is not None:
             self.down_side_shape = cfg.down_side_shape
+            self.down_apix = self.side_shape * self.apix / cfg.down_side_shape
 
         if cfg.mask_rad is not None:
             self.mask = Mask(self.down_side_shape, cfg.mask_rad)
