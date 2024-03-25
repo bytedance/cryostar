@@ -1,5 +1,6 @@
-from functools import lru_cache
 from pathlib import Path
+from typing import Union
+from functools import lru_cache
 
 import einops
 import numpy as np
@@ -13,14 +14,15 @@ import torch
 from torch import linalg as LA
 from torch import nn
 import torch.nn.functional as F
+from torch.utils.checkpoint import checkpoint
 
-from cryostar.common.residue_constants import ca_ca
 from cryostar.utils.misc import log_to_current
-from cryostar.utils.ml_modules import VAEEncoder, Decoder, reparameterize
+from cryostar.common.residue_constants import ca_ca
 from cryostar.utils.ctf import parse_ctf_star
+from cryostar.nerf.volume_utils import ImplicitFourierVolume
+from cryostar.utils.ml_modules import VAEEncoder, Decoder, reparameterize
 
 from lightning.pytorch.utilities import rank_zero_only
-from typing import Union
 
 
 CA_CA = round(ca_ca, 2)
@@ -257,3 +259,42 @@ class VAE(nn.Module):
         z = reparameterize(mean, log_var)
         out = self.decoder(z)
         return out, mean, log_var
+
+
+class GMMVolVAE(VAE):
+
+    def __init__(self,
+                 encoder_cls: str,
+                 decoder_cls: str,
+                 in_dim: int,
+                 e_hidden_dim: Union[int, list, tuple],
+                 latent_dim: int,
+                 d_hidden_dim: Union[int, list, tuple],
+                 out_dim: int,
+                 e_hidden_layers: int,
+                 d_hidden_layers: int,
+                 mask_rad: float,
+                 side_shape: int = None,
+                 vol_params: dict = None):
+        super().__init__(encoder_cls=encoder_cls,
+                         decoder_cls=decoder_cls,
+                         in_dim=in_dim,
+                         e_hidden_dim=e_hidden_dim,
+                         latent_dim=latent_dim,
+                         d_hidden_dim=d_hidden_dim,
+                         out_dim=out_dim,
+                         e_hidden_layers=e_hidden_layers,
+                         d_hidden_layers=d_hidden_layers,)
+        self.vol = ImplicitFourierVolume(latent_dim,
+                                         img_sz=side_shape,
+                                         mask_rad=mask_rad,
+                                         params_implicit=vol_params,)
+
+    def forward(self, x, idx=None, rots=None, *args):
+        mean, log_var = checkpoint(self.encoder, x, use_reentrant=False)
+        z = reparameterize(mean, log_var)
+        out = checkpoint(self.decoder, z, use_reentrant=False)
+        # detached_z = z.detach()
+        # vol_slice = self.vol(detached_z, rots)
+        vol_slice = checkpoint(self.vol, mean, rots, use_reentrant=False)
+        return out, vol_slice, mean, log_var

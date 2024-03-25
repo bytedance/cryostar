@@ -6,6 +6,7 @@ import numpy as np
 import einops
 import torch
 from torch import nn
+from torch.utils.checkpoint import checkpoint
 
 
 def init_weights_requ(m):
@@ -326,7 +327,8 @@ class SIREN(nn.Module):
 
 class FourierNet(nn.Module):
 
-    def __init__(self, net_type, z_dim, pe_dim, pe_type, D, layer=3, hidden_dim=256, force_symmetry=False):
+    def __init__(self, net_type, z_dim, pe_dim, pe_type, D, layer=3, hidden_dim=256, force_symmetry=False,
+                 use_checkpoint=False):
         super().__init__()
 
         self.pe = PositionalEncoding(D=D, pe_dim=pe_dim, pe_type=pe_type)
@@ -355,6 +357,7 @@ class FourierNet(nn.Module):
         else:
             raise NotImplementedError
         self.out_features = out_features  # 2: fourier, 1: hartley
+        self.use_checkpoint = use_checkpoint
 
     def forward(self, z, coords):
         """
@@ -377,9 +380,19 @@ class FourierNet(nn.Module):
             net_input = coords
 
         if self.net_type == "cryoai":
-            output = torch.exp(self.net_enveloppe(net_input)) * self.net_modulant(net_input)
+            if self.use_checkpoint:
+                env = checkpoint(self.net_enveloppe, net_input)
+                mod = checkpoint(self.net_modulant, net_input)
+
+                output = torch.exp(env * mod)
+            else:
+                output = torch.exp(self.net_enveloppe(net_input)) * self.net_modulant(net_input)
+
         elif self.net_type in ("cryodrgn", "cryodrgn-fourier"):
-            output = self.net(net_input)
+            if self.use_checkpoint:
+                output = checkpoint(self.net, net_input)
+            else:
+                output = self.net(net_input)
 
         if self.force_symmetry:
             output = self.symmetrizer.antisymmetrize_output(output)
