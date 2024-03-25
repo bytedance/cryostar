@@ -419,8 +419,8 @@ class CryoEMTask(pl.LightningModule):
         b = len(pred_vols)
         for i in range(b):
             density = pred_vols[i]
-            voxel_size = self.cfg.data.voxel_size
-            origin = self.cfg.data.side_shape // 2 * self.cfg.data.voxel_size
+            voxel_size = self.cfg.data_process.down_apix
+            origin = self.cfg.data_process.down_side_shape // 2 * voxel_size
 
             density = density.cpu().numpy()
             save_mrc(density, osp.join(save_dir, f"vol_{i}.mrc"), voxel_size, origin)
