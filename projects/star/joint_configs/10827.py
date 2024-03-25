@@ -90,4 +90,4 @@ trainer = dict(
     devices=8,
     precision="16-mixed",
     num_sanity_val_steps=0,
-               )
+)

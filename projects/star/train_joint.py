@@ -169,9 +169,9 @@ class CryoEMTask(pl.LightningModule):
         # self.model = VAE(in_dim=in_dim,
         #                  out_dim=num_pts * 3 if nma_modes is None else 6 + nma_modes.shape[1],
         #                  **cfg.model.model_cfg)
-        log_to_current('Model summary:\n' +
-                       str(summary(self.model, input_size=[(1, cfg.data_process.down_side_shape ** 2), (1,), (1, 3, 3)],
-                                   verbose=0)))
+        # log_to_current('Model summary:\n' +
+        #                str(summary(self.model, input_size=[(1, cfg.data_process.down_side_shape ** 2), (1,), (1, 3, 3)],
+        #                            verbose=0)))
         if nma_modes is None:
             self.deformer = E3Deformer()
         else:
@@ -689,6 +689,7 @@ class CryoEMTask(pl.LightningModule):
                         log_to_current(f"delete {p} to keep last {keep_last_k} ckpts")
 
     def on_train_start(self):
+        self.trainer.validate_loop.setup_data()
         if self.trainer.is_global_zero:
             self._shared_image_check()
         self.trainer.strategy.barrier()
