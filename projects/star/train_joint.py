@@ -734,6 +734,13 @@ def train():
 
     rank_zero_only(cfg.dump)(osp.join(cfg.work_dir, "config.py"))
 
+    if cfg.dataset_attr.f_mu is not None:
+        dataset.f_mu = cfg.dataset_attr.f_mu
+        dataset.f_std = cfg.dataset_attr.f_std
+    else:
+        dataset.estimate_normalization()
+    log_to_current(f"Fourier mu/std: {dataset.f_mu:.5f}/{dataset.f_std:.5f}")
+
     log_to_current(f"Load dataset from {dataset.cfg.dataset_dir}, power scaled by {dataset.cfg.power_images}")
     log_to_current(f"Total {len(dataset)} samples")
     log_to_current(f"The dataset side_shape: {dataset.side_shape}, apix: {dataset.apix}")

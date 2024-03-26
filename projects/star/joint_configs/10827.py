@@ -4,6 +4,8 @@ dataset_attr = dict(
     apix=0.9,
     side_shape=224,
     ref_pdb_path="empiar_link/10827/res/7ptx_J40.pdb",
+    f_mu=0.0,
+    f_std=197.95383,
 )
 
 extra_input_data_attr = dict(
