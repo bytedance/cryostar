@@ -1,6 +1,8 @@
 import math
 
 import torch
+
+from cryostar.utils.misc import create_sphere_mask, create_circular_mask
 """
     Hartley Transform is defined in https://en.wikipedia.org/wiki/Hartley_transform
     where:
@@ -234,6 +236,8 @@ def downsample_3d(r: torch.Tensor, down_side: int) -> torch.Tensor:
     s = DC_loc - DC_left
     e = DC_loc + DC_right
     f_density_down = f_density[s:e, s:e, s:e]
+    mask = torch.tensor(create_sphere_mask(down_side, down_side, down_side, radius=down_side // 2))
+    f_density_down[~mask] = 0
     density_down = fourier_to_primal_3d(f_density_down).real
     return density_down
 
@@ -248,5 +252,7 @@ def downsample_2d(r: torch.Tensor, down_side: int) -> torch.Tensor:
     s = DC_loc - DC_left
     e = DC_loc + DC_right
     f_image_down = f_image[s:e, s:e]
+    mask = torch.tensor(create_circular_mask(down_side, down_side, radius=down_side // 2))
+    f_image_down[~mask] = 0
     image_down = fourier_to_primal_2d(f_image_down).real
     return image_down
