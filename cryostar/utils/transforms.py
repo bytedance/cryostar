@@ -63,6 +63,41 @@ def shift_coords(coords: torch.Tensor,
     return coords
 
 
+class FourierDownsample(torch.nn.Module):
+    def __init__(self, L, D, device=None) -> None:
+        super().__init__()
+        self.L = L
+        self.D = D
+
+    def transform(self, f_images: torch.Tensor):
+        """
+
+            Input:
+                f_images: (B, NY, NX)
+
+            Returns:
+                f_img_down: (B, NY', NX')
+        """
+        B, NY, NX = f_images.shape
+        assert self.D == NY == NX
+        assert self.L % 2 == 0
+        assert self.L <= self.D
+        if NY == self.L and NX == self.L:
+            return f_images
+
+        # follow cryostar.util.fft_utils
+        DC_loc = self.D // 2
+        DC_left = self.L // 2
+        DC_right = self.L - DC_left
+
+        s = DC_loc - DC_left
+        e = DC_loc + DC_right
+
+        f_img_down = f_images[..., s:e, s:e]
+
+        return f_img_down
+
+
 class SpatialGridDownsample(torch.nn.Module):
 
     def __init__(self, L, D, device=None) -> None:
