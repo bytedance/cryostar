@@ -282,6 +282,52 @@ class GridRotate(torch.nn.Module):
         return img_rotated
 
 
+class FourierGridRotate(torch.nn.Module):
+
+    def __init__(self, D, device=None) -> None:
+        super().__init__()
+        self.D = D
+        # yapf: disable
+        coords = torch.stack(torch.meshgrid([
+            torch.linspace(-1.0, 1.0, self.D, device=device),
+            torch.linspace(-1.0, 1.0, self.D, device=device)],
+        indexing="xy"), dim=-1) # (D, D, 2)
+        # yapf: enable
+        coords = shift_coords(coords, 1.0, 1.0, None, self.D, self.D, None, False)
+        self.register_buffer("coords", coords)
+
+    def transform(self, f_images: torch.Tensor, angles: torch.Tensor):
+        """
+            Rotate an fourier image by angles anti-clockwisely.
+
+            Input:
+                f_images: (B, NY, NX)
+                angles: (B, Q)
+
+            Returns:
+                f_images: (B, Q,  NY, NX)
+        """
+        B, NY, NX = f_images.shape
+        B, Q = angles.shape
+        assert self.D == NY == NX
+        assert f_images.shape[0] == angles.shape[0]
+
+        img_expanded = einops.rearrange(torch.view_as_real(f_images), "B NY NX C2 -> B C2 NY NX")
+
+        cos = torch.cos(angles)
+        sin = torch.sin(angles)
+        rot = einops.rearrange([cos, -sin, sin, cos], "(C2_1 C2_2) B Q-> B Q C2_1 C2_2", C2_1=2, C2_2=2)
+
+        grid = einops.einsum(self.coords, rot, "NY NX C2_1, B Q C2_1 C2_2 -> B Q NY NX C2_2")
+        grid = einops.rearrange(grid, "B Q NY NX C2 -> B (Q NY) NX C2")
+        grid = shift_coords(grid, 1.0, 1.0, None, self.D, self.D, None, True)
+
+        img_rotated = F.grid_sample(img_expanded, grid, align_corners=True)
+        img_rotated = einops.rearrange(img_rotated, "B C2 (Q NY) NX -> B Q NY NX C2", B=B, Q=Q)
+        img_rotated = img_rotated[..., 0] + img_rotated[..., 1] * 1j
+        return img_rotated
+
+
 class FourierGridProjector(torch.nn.Module):
     """
         For downsampling, we only need to crop around the DC term in the fourier space, 
