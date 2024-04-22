@@ -6,36 +6,22 @@ from cryostar.utils.misc import create_sphere_mask, create_circular_mask
 """
     Hartley Transform is defined in https://en.wikipedia.org/wiki/Hartley_transform
     where:
-        H{w} = ( F{w} + F{-w} ) / 2 - i ( F{w} - F{-w} ) / 2 
-        H{-w} = ( F{-w} + F{w} ) / 2 - i ( F{-w} - F{w} ) / 2 
+        F{w} = ( H{w} + H{-w} ) / 2 - i ( H{w} - H{-w} ) / 2
+        F{-w} = ( H{-w} + H{w} ) / 2 - i ( H{-w} - H{w} ) / 2
     
     The conversion between Fourier and Hartley is:
     - Odd case:
 
         - Fourier -> Hartley
 
-            Since:
-                    0  1  2
-                0 [        ]
-            F = 1 [   DC   ]
-                2 [        ]
-            H[00] = (F[00] + F[22]) / 2 - i (F[00] - F[22]) / 2
-                  = (2 * F[00].real) / 2 - i (i 2 * F[00].imag) / 2
-                  = F[00].real + F[00].imag
-            
             We have:
-                H = F.real + F.imag
+                H = F.real - F.imag
             
         - Hartley -> Fourier
 
-            Since:
-                H       = F.real + F.imag
-                flip(H) = flip(F.real) + flip(F.imag) 
-                        = F.real - F.imag
-
-            We have: 
-                F.real = (H + flip(H)) / 2
-                F.imag = (H - flip(H)) / 2
+            We have:
+                F.real = (H + flip(H)) / 2  # flip(H){w} = H{-w}
+                F.imag = (flip(H) - H) / 2
         
     - Even case:
 
@@ -93,7 +79,7 @@ def hartley_to_fourier_2d(H):
 
     if D % 2 == 1:
         H_flip = torch.flip(H, dims=dims)
-        F = (H + H_flip) / 2 + (H - H_flip) / 2 * 1j
+        F = (H + H_flip) / 2 - (H - H_flip) / 2 * 1j
         return F
     else:
         H_aug = torch.zeros((D + 1, D + 1), dtype=H.dtype, device=H.device)
@@ -102,7 +88,7 @@ def hartley_to_fourier_2d(H):
         H_aug[:D, D] = H[:D, 0]
         H_aug[D, D] = H[0, 0]
         H_aug_flip = torch.flip(H_aug, dims=dims)
-        F_aug = (H_aug + H_aug_flip) / 2 + (H_aug - H_aug_flip) / 2 * 1j
+        F_aug = (H_aug + H_aug_flip) / 2 - (H_aug - H_aug_flip) / 2 * 1j
         F = F_aug[:D, :D]
         return F
     
@@ -122,7 +108,7 @@ def batch_hartley_to_fourier_2d(Hs):
 
     if D % 2 == 1:
         Hs_flip = torch.flip(Hs, dims=dims)
-        F = (Hs + Hs_flip) / 2 + (Hs - Hs_flip) / 2 * 1j
+        F = (Hs + Hs_flip) / 2 - (Hs - Hs_flip) / 2 * 1j
         return F
     else:
         Hs_aug = torch.zeros((bsz, D + 1, D + 1), dtype=Hs.dtype, device=Hs.device)
@@ -131,9 +117,13 @@ def batch_hartley_to_fourier_2d(Hs):
         Hs_aug[:, :D, D] = Hs[:, :D, 0]
         Hs_aug[:, D, D] = Hs[:, 0, 0]
         Hs_aug_flip = torch.flip(Hs_aug, dims=dims)
-        Fs_aug = (Hs_aug + Hs_aug_flip) / 2 + (Hs_aug - Hs_aug_flip) / 2 * 1j
+        Fs_aug = (Hs_aug + Hs_aug_flip) / 2 - (Hs_aug - Hs_aug_flip) / 2 * 1j
         Fs = Fs_aug[:, :D, :D]
         return Fs
+
+
+def fourier_to_hartley_3d(F):
+    return F.real - F.imag
 
 
 def hartley_to_fourier_3d(H):
@@ -148,7 +138,7 @@ def hartley_to_fourier_3d(H):
 
     if D % 2 == 1:
         H_flip = torch.flip(H, dims=dims)
-        F = (H + H_flip) / 2 + (H - H_flip) / 2 * 1j
+        F = (H + H_flip) / 2 - (H - H_flip) / 2 * 1j
         return F
     else:
         H_aug = torch.zeros((D + 1, D + 1, D + 1), dtype=H.dtype, device=H.device)
@@ -164,27 +154,19 @@ def hartley_to_fourier_3d(H):
         # set vertex
         H_aug[D, D, D] = H[0, 0, 0]
         H_aug_flip = torch.flip(H_aug, dims=dims)
-        F_aug = (H_aug + H_aug_flip) / 2 + (H_aug - H_aug_flip) / 2 * 1j
+        F_aug = (H_aug + H_aug_flip) / 2 - (H_aug - H_aug_flip) / 2 * 1j
         F = F_aug[:D, :D, :D]
         return F
 
 
-def _ht_3d(x):
-    x = torch.fft.fftshift(x, dim=(-3, -2, -1))
-    y = torch.fft.fftn(x, dim=(-3, -2, -1))
-    y = torch.fft.fftshift(y, dim=(-3, -2, -1))
-    return y
-
-
-def real_to_ht_3d(r):
-    h = _ht_3d(r)
-    h = h / math.sqrt(r.shape[-1] * r.shape[-2] * r.shape[-3])
+def primal_to_hartley_3d(r):
+    h = primal_to_fourier_3d(r)
     return h.real - h.imag
 
 
-def ht_to_real_3d(h):
-    r = _ht_3d(h)
-    r = r / math.sqrt(r.shape[-1] * r.shape[-2] * r.shape[-3])
+def hartley_to_primal_3d(h):
+    r = primal_to_fourier_3d(h)
+    r = r / (r.shape[-1] * r.shape[-2] * r.shape[-3])
     return r.real - r.imag
 
 
