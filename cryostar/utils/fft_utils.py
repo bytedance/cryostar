@@ -46,24 +46,6 @@ from cryostar.utils.misc import create_sphere_mask, create_circular_mask
                 - F[20]=F[24] (g=g) and F[20]=F[24]* (g=g*), g is real.
                 - F[00]=F[04] (a=e) and F[00]=F[44]* (a=e*), a=e is real.)
 
-            According to the odd case,
-                H' = F'.real + F'.imag
-            where:    
-                H'[last row] = F'[last row].real + F'[last row].imag
-                             = F'[first row].real + F'[first row].imag
-                             = H'[first row]
-
-            Takeaway:
-                - Convert F to F' by duplicating the first row/col.
-                - Convert F' to H'
-                - Drop the last row/col
-        
-
-        Hartley -> Fourier
-            Take away:
-                - Convert H to H' by duplicating the first row/col.
-                - Convert H' to F'
-                - Drop the last row/col         
 """
 
 
@@ -123,6 +105,10 @@ def batch_hartley_to_fourier_2d(Hs):
 
 
 def fourier_to_hartley_3d(F):
+    return F.real - F.imag
+
+
+def fourier_to_hartley_2d(F):
     return F.real - F.imag
 
 
