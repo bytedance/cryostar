@@ -26,7 +26,7 @@ def load_rotation_from_starfile(starfile_path: str):
     """
     f = starfile.read(starfile_path)
     angles = np.stack([f["rlnAngleRot"], f["rlnAngleTilt"], f["rlnAnglePsi"]], axis=-1)
-    rots = euler_angles_to_matrix(torch.from_numpy(np.deg2rad(angles)), "ZYZ").T
+    rots = euler_angles_to_matrix(torch.from_numpy(np.deg2rad(angles)), "ZYZ").transpose(1, 2)
     return rots
 
 
@@ -55,7 +55,7 @@ def R_from_relion(a: np.ndarray, b: np.ndarray, y: np.ndarray, degree=False) -> 
 def euler_angles2matrix(alpha, beta, gamma):
     """
     Converts euler angles in RELION convention to rotation matrix.
-    The function is equivalant to "zyz" convention, not the "ZYZ" convention!
+    The function is equivalent to "zyz" convention, not the "ZYZ" convention!
 
     >>> euler_angles2matrix(a, b, c)  
     >>> Rotation.from_euler("zyz", np.array([a, b, c])).as_matrix() # in scipy
