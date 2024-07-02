@@ -1,12 +1,64 @@
+"""
+    # we can use any convention just to generate a valid euler angle
+    angles = Rotation.random(1).as_euler("zxz")
+
+    # the below code is equivalent
+    r1 = R_from_relion(e[0], e[1], e[2])                                         # cryodrgn.parse_pose_star
+    r2 = euler_angles2matrix(-e[0], -e[1], -e[2])                                # cryostar.dataio
+    r3 = Rotation.from_euler("zyz", np.array([-e[0], -e[1], -e[2]])).as_matrix() # easier to batchify!
+    r4 = Rotation.from_euler("ZYZ", np.array([-e[2], -e[1], -e[0]])).as_matrix() # ZYZ(abc)=zyz(cba)
+    r5 = Rotation.from_euler("ZYZ", np.array([e[0], e[1], e[2]])).as_matrix().T  # ZYZ(abc)=ZYZ(-c,-b,-a)^-1
+
+    print(np.abs(r1 - r2).sum())
+    print(np.abs(r1 - r3).sum())
+    print(np.abs(r1 - r4).sum())
+"""
+
 import numpy as np
 import torch
-
+import starfile
 from cryostar.utils.rotation_conversion import euler_angles_to_matrix, matrix_to_euler_angles
+
+
+def load_rotation_from_starfile(starfile_path: str):
+    """
+        This function is consistent with cryodrgn.parse_pose_star and cryostar.dataio
+    """
+    f = starfile.read(starfile_path)
+    angles = np.stack([f["rlnAngleRot"], f["rlnAngleTilt"], f["rlnAnglePsi"]], axis=-1)
+    rots = euler_angles_to_matrix(torch.from_numpy(np.deg2rad(angles)), "ZYZ").T
+    return rots
+
+
+def R_from_relion(a: np.ndarray, b: np.ndarray, y: np.ndarray, degree=False) -> np.ndarray:
+    """
+        Copied from cryodrgn.utils
+    """
+    if degree:
+        a *= np.pi / 180.0
+        b *= np.pi / 180.0
+        y *= np.pi / 180.0
+    ca, sa = np.cos(a), np.sin(a)
+    cb, sb = np.cos(b), np.sin(b)
+    cy, sy = np.cos(y), np.sin(y)
+    Ra = np.array([[ca, -sa, 0], [sa, ca, 0], [0, 0, 1]])
+    Rb = np.array([[cb, 0, -sb], [0, 1, 0], [sb, 0, cb]])
+    Ry = np.array(([cy, -sy, 0], [sy, cy, 0], [0, 0, 1]))
+    R = np.dot(np.dot(Ry, Rb), Ra)
+    R[0, 1] *= -1
+    R[1, 0] *= -1
+    R[1, 2] *= -1
+    R[2, 1] *= -1
+    return R
 
 
 def euler_angles2matrix(alpha, beta, gamma):
     """
     Converts euler angles in RELION convention to rotation matrix.
+    The function is equivalant to "zyz" convention, not the "ZYZ" convention!
+
+    >>> euler_angles2matrix(a, b, c)  
+    >>> Rotation.from_euler("zyz", np.array([a, b, c])).as_matrix() # in scipy
 
     Parameters
     ----------
