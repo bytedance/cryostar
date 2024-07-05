@@ -642,3 +642,49 @@ class CNNEncoderVGG16(nn.Module):
     def forward(self, input):
         out = self.net(input)
         return out
+
+
+class CryoFireCNN(nn.Module):
+    def __init__(self, resolution: int, depth: int, channels: int, kernel_size: int, nl=nn.ReLU):
+        super(CryoFireCNN, self).__init__()
+
+        cnn = []
+        in_channels = 1
+        out_channels = channels
+        final_size = resolution
+        for _ in range(depth):
+            cnn.append(nn.Conv2d(in_channels, out_channels, kernel_size, padding='same'))
+            in_channels = out_channels
+            cnn.append(nl())
+            out_channels = 2 * in_channels
+            cnn.append(nn.Conv2d(in_channels, out_channels, kernel_size, padding='same'))
+            in_channels = out_channels
+            cnn.append(nl())
+            cnn.append(nn.AvgPool2d(2))
+            final_size = final_size // 2
+            cnn.append(nn.GroupNorm(channels, in_channels))
+        self.cnn = nn.Sequential(*cnn)
+
+        self.final_size = final_size
+        self.final_channels = in_channels
+
+    def forward(self, y_real):
+        return self.cnn(y_real)
+
+
+class WrappedCryoFireCNN(nn.Module):
+    def __init__(self, in_channels, side_len) -> None:
+        super().__init__()
+        from einops.layers.torch import Rearrange
+        self.side_len = side_len
+        self.net = torch.nn.Sequential(
+            Rearrange("bsz (c ny nx) -> bsz c ny nx", c=in_channels, ny=side_len, nx=side_len),
+            CryoFireCNN(resolution=side_len, depth=6, channels=16, kernel_size=3),
+            torch.nn.Flatten(1)
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+    def get_out_dim(self):
+        return self.forward(torch.rand(1, 1 * self.side_len * self.side_len)).shape[1]

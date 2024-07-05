@@ -25,6 +25,8 @@ def load_rotation_from_starfile(starfile_path: str):
         This function is consistent with cryodrgn.parse_pose_star and cryostar.dataio
     """
     f = starfile.read(starfile_path)
+    if "particles" in f:
+        f = f["particles"]
     angles = np.stack([f["rlnAngleRot"], f["rlnAngleTilt"], f["rlnAnglePsi"]], axis=-1)
     rots = euler_angles_to_matrix(torch.from_numpy(np.deg2rad(angles)), "ZYZ").transpose(1, 2)
     return rots
