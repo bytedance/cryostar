@@ -432,7 +432,7 @@ def batch_find_rigid_alignment(A, B):
     return R, t.squeeze()  
 
 
-def pretty_dict(x, precision=3):
+def pretty_dict(x, precision=3, sci_mode=False):
     """
         Input: 
             x:  a dict (containing torch.Tensor, np.ndarray, float, etc.) to show in a line
@@ -464,7 +464,10 @@ def pretty_dict(x, precision=3):
                 v = v
             if isinstance(v, float):
                 # ret.append("{}: {:.3f}".format(k, v))
-                float_formatter = "{}: {:.<PCS>f}".replace("<PCS>", str(precision))
+                if sci_mode:
+                    float_formatter = "{}: {:.<PCS>e}".replace("<PCS>", str(precision))
+                else:
+                    float_formatter = "{}: {:.<PCS>f}".replace("<PCS>", str(precision))
                 ret.append(float_formatter.format(k, v))
             else:
                 ret.append("{}: {}".format(k, v))
