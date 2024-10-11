@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <!-- Meta tags for social media banners, these should be filled in appropriatly as they are your "business card" -->
+  <!-- Replace the content tag with appropriate information -->
+  <meta name="description" content="DESCRIPTION META TAG">
+  <meta property="og:title" content="SOCIAL MEDIA TITLE TAG" />
+  <meta property="og:description" content="SOCIAL MEDIA DESCRIPTION TAG TAG" />
+  <meta property="og:url" content="URL OF THE WEBSITE" />
+  <!-- Path to banner image, should be in the path listed below. Optimal dimenssions are 1200X630-->
+  <meta property="og:image" content="static/image/your_banner_image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+
+  <meta name="twitter:title" content="TWITTER BANNER TITLE META TAG">
+  <meta name="twitter:description" content="TWITTER BANNER DESCRIPTION META TAG">
+  <!-- Path to banner image, should be in the path listed below. Optimal dimenssions are 1200X600-->
+  <meta name="twitter:image" content="static/images/your_twitter_banner_image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <!-- Keywords for your paper to be indexed by-->
+  <meta name="keywords" content="KEYWORDS SHOULD BE PLACED HERE">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <title>cryoSTAR</title>
+  <!-- <link rel="icon" type="image/x-icon" href="static/images/cryostar.png"> -->
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+
+  <link rel="stylesheet" href="static/css/bulma.min.css">
+  <link rel="stylesheet" href="static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="static/css/fontawesome.all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="static/css/index.css">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://documentcloud.adobe.com/view-sdk/main.js"></script>
+  <script defer src="static/js/fontawesome.all.min.js"></script>
+  <script src="static/js/bulma-carousel.min.js"></script>
+  <script src="static/js/bulma-slider.min.js"></script>
+  <script src="static/js/index.js"></script>
+  <script src="https://fred-wang.github.io/TeXZilla/TeXZilla-min.js"></script>
+  <script src="https://fred-wang.github.io/TeXZilla/examples/customElement.js"></script>
+</head>
+
+<body>
+
+
+  <section class="hero">
+    <div class="hero-body">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered">
+          <div class="column has-text-centered">
+            <h1 class="title is-1 publication-title">
+              CryoFM: A Flow-based Foundation Model for Cryo-EM Densities
+            </h1>
+            <div class="is-size-5 publication-authors">
+              <!-- Paper authors -->
+              <span class="author-block">
+                Yi Zhou<sup>*</sup>,</span>
+              <span class="author-block">
+                Yilai Li<sup>*</sup>,</span>
+              <span class="author-block">
+                Jing Yuan<sup>*</sup>,</span>
+              <span class="author-block">
+                Quanquan Gu<sup>#</sup></span>
+            </div>
+
+            <div class="is-size-5 publication-authors">
+              <span class="author-block">
+                ByteDance Research
+              </span>
+              <span class="eql-cntrb"><small><br>
+                  <sup>*</sup>Equal Contribution
+                  &nbsp;&nbsp;&nbsp;
+                  <sup>#</sup>Corresponding Author
+                </small>
+              </span>
+            </div>
+
+            <div class="has-text-grey">
+              {zhouyi.naive, yilai.li, yuanjing.eugene, quanquan.gu}@bytedance.com
+            </div>
+
+            <div class="column has-text-centered">
+              <div class="publication-links">
+                <!-- Arxiv PDF link -->
+                <span class="link-block">
+                  <a target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="fas fa-file-pdf"></i>
+                    </span>
+                    <span>Paper</span>
+                  </a>
+                </span>
+
+                <!-- Supplementary PDF link -->
+                <!-- <span class="link-block">
+                  <a href="static/pdfs/supplementary_material.pdf" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="fas fa-file-pdf"></i>
+                    </span>
+                    <span>Supplementary</span>
+                  </a>
+                </span> -->
+
+                <!-- Github link -->
+                <span class="link-block">
+                  <a target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="fab fa-github"></i>
+                    </span>
+                    <span>Code will be available upon publication.</span>
+                  </a>
+                </span>
+
+                <!-- Documentation link -->
+                <!-- <span class="link-block">
+                  <a href="https://byte-research.gitbook.io/cryostar" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="fas fa-book"></i>
+                    </span>
+                    <span>User Guide</span>
+                  </a>
+                </span> -->
+
+                <!-- ArXiv abstract Link -->
+                <!-- <span class="link-block">
+                  <a href="https://arxiv.org/abs/<ARXIV PAPER ID>" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="ai ai-arxiv"></i>
+                    </span>
+                    <span>arXiv</span>
+                  </a>
+                </span> -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="hero teaser">
+    <div class="container is-max-desktop">
+      <div class="hero-body">
+        <img src="https://tosv.byted.org/obj/nlp-opensource/cryofm/images/intro.jpg" alt="MAIN_FIGURE" />
+        <h2 class="subtitle has-text-justified">
+          The overview of cryoFM. In the training stage, cryoFM learns a vector field
+          <la-tex>v_t(\mathbf{x}_t)</la-tex>,
+          whose corresponding probability flow generates the data distribution <la-tex>p_0(\mathbf{x}_0)</la-tex> of
+          high-quality protein densities. In the inference stage, given a degraded observation
+          <la-tex>\mathbf{y}</la-tex>, a likelihood term <la-tex>p_t(\mathbf{y}|\mathbf{x}_t)</la-tex> is incorporated
+          to convert the unconditional vector field <la-tex>v_t(x_t)</la-tex> to a conditional one
+          <la-tex>v_t(\mathbf{x}_t|\mathbf{y})</la-tex>, so that we can sample from the posterior distribution
+          <la-tex>p_0(\mathbf{x}_0|\mathbf{y})</la-tex>. This enables signal restoration of the density map, resulting
+          in improved resolution of the alpha helices in the shown case.
+        </h2>
+      </div>
+    </div>
+  </section>
+
+  <!-- Paper abstract -->
+  <section class="section hero is-light">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <h2 class="title is-3">Abstract</h2>
+          <div class="content has-text-justified">
+            <p>
+              Cryo-electron microscopy (cryo-EM) is a powerful technique in structural biology and drug discovery,
+              enabling the study of biomolecules at high resolution. Significant advancements by structural biologists
+              using cryo-EM have led to the production of over 38,626 protein density maps at various resolutions.
+              However, cryo-EM data processing algorithms have yet to fully benefit from our knowledge of biomolecular
+              density maps, with only a few recent models being data-driven but limited to specific tasks.
+              In this study, we present cryoFM, a foundation model designed as a generative model,
+              learning the distribution of high-quality density maps and generalizing effectively to downstream tasks.
+              Built on flow matching, cryoFM is trained to accurately capture the prior distribution of biomolecular
+              density maps. Furthermore, we introduce a flow posterior sampling method that leverages cryoFM as a
+              flexible prior for several downstream tasks in cryo-EM and cryo-electron tomography (cryo-ET) without
+              the need for fine-tuning, achieving state-of-the-art performance on most tasks and demonstrating
+              its potential as a foundational model for broader applications in these fields.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- End paper abstract -->
+
+  <!-- Image carousel -->
+  <section class="hero is-small">
+    <div class="hero-body">
+      <div class="container" style="width: 960px">
+        <h2 class="title has-text-centered">Results on 4 downstream tasks</h2>
+        <div id="results-carousel" class="carousel results-carousel">
+          <div class="item">
+              <img class="center-image-carousel blend-img-background" src="https://tosv.byted.org/obj/nlp-opensource/cryofm/images/task1.jpg">
+          </div>
+
+          <div class="item">
+              <img class="center-image-carousel blend-img-background" src="https://tosv.byted.org/obj/nlp-opensource/cryofm/images/task2.jpg">
+          </div>
+
+          <div class="item">
+              <img class="center-image-carousel blend-img-background" src="https://tosv.byted.org/obj/nlp-opensource/cryofm/images/task3.jpg">
+          </div>
+
+          <div class="item">
+              <img class="center-image-carousel blend-img-background" src="https://tosv.byted.org/obj/nlp-opensource/cryofm/images/task4.jpg">
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- End image carousel -->
+
+  <!--BibTex citation -->
+  <section class="section" id="BibTeX">
+    <div class="container is-max-desktop content">
+      <h2 class="title">BibTeX</h2>
+      <pre><code>
+        @article {yi2024cryofm,
+          author = {Yi Zhou and Yilai Li and Jing Yuan and Quanquan Gu},
+          title = {CryoFM: A Flow-based Foundation Model for Cryo-EM Densities},
+          year = {2024},
+          doi = {placeholder},
+          URL = {placeholder},
+          journal = {arXiv}
+        }
+      </code></pre>
+    </div>
+  </section>
+  <!--End BibTex citation -->
+
+
+  <footer class="footer">
+    <div class="container">
+      <div class="columns is-centered">
+        <div class="column is-8">
+          <div class="content">
+
+            <p>
+              This page was built using the <a href="https://github.com/eliahuhorwitz/Academic-project-page-template"
+                target="_blank">Academic Project Page Template</a> which was adopted from the <a
+                href="https://nerfies.github.io" target="_blank">Nerfies</a> project page.
+              You are free to borrow the of this website, we just ask that you link back to this page in the footer.
+              <br> This website is licensed under a <a rel="license"
+                href="http://creativecommons.org/licenses/by-sa/4.0/" target="_blank">Creative
+                Commons Attribution-ShareAlike 4.0 International License</a>.
+            </p>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Statcounter tracking code -->
+
+  <!-- You can add a tracker to track page visits by creating an account at statcounter.com -->
+
+  <!-- End of Statcounter Code -->
+
+</body>
+
+</html>
