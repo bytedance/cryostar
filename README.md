@@ -87,14 +87,15 @@ density_xxxxx/
 ## Reference
 You may cite this software by:
 ```bibtex
-@article {li2023cryostar,
-    author = {Yilai Li and Yi Zhou and Jing Yuan and Fei Ye and Quanquan Gu},
-    title = {CryoSTAR: Leveraging Structural Prior and Constraints for Cryo-EM Heterogeneous Reconstruction},
-    elocation-id = {2023.10.31.564872},
-    year = {2023},
-    doi = {10.1101/2023.10.31.564872},
-    URL = {https://www.biorxiv.org/content/early/2023/11/02/2023.10.31.564872},
-    eprint = {https://www.biorxiv.org/content/early/2023/11/02/2023.10.31.564872.full.pdf},
-    journal = {bioRxiv}
+@article{li2023cryostar,
+author={Li, Yilai and Zhou, Yi and Yuan, Jing and Ye, Fei and Gu, Quanquan},
+title={CryoSTAR: leveraging structural priors and constraints for cryo-EM heterogeneous reconstruction},
+journal={Nature Methods},
+year={2024},
+month={Oct},
+day={29},
+issn={1548-7105},
+doi={10.1038/s41592-024-02486-1},
+url={https://doi.org/10.1038/s41592-024-02486-1}
 }
 ```
